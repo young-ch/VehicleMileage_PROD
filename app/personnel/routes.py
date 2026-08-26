@@ -172,23 +172,66 @@ def paste_save():
                     db.session.add(dept)
                     db.session.flush()
             
-            # 중복 체크
-            existing = Personnel.query.filter_by(employee_id=row.get('employee_id')).first()
+            row_status = row.get('status', 'active')
+            
+            # --- 1. 퇴사자 처리 (기존 재직자 정보 변경) ---
+            if row_status == 'inactive':
+                name = row.get('name')
+                emp_id = row.get('employee_id')
+                person = None
+                
+                # 사번으로 먼저 찾기
+                if emp_id:
+                    person = Personnel.query.filter_by(employee_id=emp_id).first()
+                
+                # 사번이 없거나 못 찾은 경우 이름 + 부서명으로 찾기
+                if not person and name:
+                    q = Personnel.query.filter_by(name=name)
+                    if dept:
+                        q = q.filter_by(department_id=dept.id)
+                    person = q.first()
+                
+                if person:
+                    old_values = person.to_dict()
+                    person.status = 'inactive'  # 퇴사 처리
+                    person.leave_date = parse_date(row.get('join_date')) or date.today()  # 퇴사일
+                    
+                    log_audit('UPDATE', 'personnel', person.id, old_values=old_values, new_values=person.to_dict())
+                    success_count += 1
+                else:
+                    errors.append({'line': idx + 1, 'message': f"퇴사 처리 대상 인원({name or emp_id})을 DB에서 찾을 수 없습니다."})
+                    fail_count += 1
+                continue
+
+            # --- 2. 신규 입사자 처리 ---
+            emp_id = row.get('employee_id', '').strip() if row.get('employee_id') else ""
+            
+            # 사번이 없으면 고유 임시 번호 자동 생성 (EMP-1000X)
+            if not emp_id:
+                max_id = db.session.query(db.func.max(Personnel.id)).scalar() or 0
+                next_num = max_id + 10001
+                emp_id = f"EMP-{next_num}"
+                while Personnel.query.filter_by(employee_id=emp_id).first() is not None:
+                    next_num += 1
+                    emp_id = f"EMP-{next_num}"
+            
+            # 사번 중복 체크
+            existing = Personnel.query.filter_by(employee_id=emp_id).first()
             if existing:
-                errors.append({'line': idx + 1, 'message': f"사번 {row.get('employee_id')} 중복"})
+                errors.append({'line': idx + 1, 'message': f"사번 {emp_id} 중복"})
                 fail_count += 1
                 continue
             
             person = Personnel(
-                employee_id=row.get('employee_id', ''),
+                employee_id=emp_id,
                 name=row.get('name', ''),
                 email=row.get('email'),
                 phone=row.get('phone'),
                 department_id=dept.id if dept else None,
                 position=row.get('position'),
                 rank=row.get('rank'),
-                join_date=parse_date(row.get('join_date')),
-                status=row.get('status', 'active'),
+                join_date=parse_date(row.get('join_date')) or date.today(),
+                status='active',
                 registered_by=current_user.id,
             )
             db.session.add(person)

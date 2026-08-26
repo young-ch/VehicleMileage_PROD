@@ -15,16 +15,15 @@ from .parser import parse_jira_text
 
 
 def generate_jira_key():
-    """JIRA Key 자동 생성 함수 (SMU-YYYY-XXXXX)"""
-    current_year = datetime.now().year
-    # 현재 저장되어 있는 총 이슈 개수를 기반으로 번호 부여
-    issue_count = JiraIssue.query.count()
-    next_num = issue_count + 1
-    # 고유성 확보를 위해 존재하지 않을 때까지 번호를 올리며 확인
-    new_key = f"SMU-{current_year}-{next_num:05d}"
+    """JIRA Key 자동 생성 함수 (SMU-X)"""
+    # 현재 등록된 가장 높은 ID를 가져옴
+    max_id = db.session.query(db.func.max(JiraIssue.id)).scalar() or 0
+    next_num = max_id + 1
+    new_key = f"SMU-{next_num}"
+    # 유니크 충돌 대비 루프 체크
     while JiraIssue.query.filter_by(jira_key=new_key).first() is not None:
         next_num += 1
-        new_key = f"SMU-{current_year}-{next_num:05d}"
+        new_key = f"SMU-{next_num}"
     return new_key
 
 
@@ -133,10 +132,8 @@ def create():
     ]
     
     if form.validate_on_submit():
-        # JIRA Key가 비어있으면 자동 생성
-        j_key = form.jira_key.data.strip() if form.jira_key.data else ""
-        if not j_key:
-            j_key = generate_jira_key()
+        # JIRA Key 자동 생성
+        j_key = generate_jira_key()
             
         # 생성일이 비어있으면 오늘 날짜 기본 입력
         c_date = form.created_date.data if form.created_date.data else date.today()

@@ -6,10 +6,6 @@ from wtforms.validators import DataRequired, Optional, Length
 
 class JiraIssueForm(FlaskForm):
     """JIRA 이슈 등록/수정 폼"""
-    jira_key = StringField('JIRA Key (미입력 시 자동 생성)', validators=[
-        Optional(),
-        Length(max=30)
-    ])
     summary = StringField('제목', validators=[
         DataRequired(message='제목을 입력해주세요.'),
         Length(max=500)

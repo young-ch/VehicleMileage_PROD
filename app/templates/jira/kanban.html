@@ -80,17 +80,14 @@
 {% endblock %}
 
 {% macro render_card(issue) %}
-<div class="kanban-card" draggable="true" data-id="{{ issue.id }}" id="card-{{ issue.id }}">
+<div class="kanban-card" draggable="true" data-id="{{ issue.id }}" id="card-{{ issue.id }}"
+     style="{% if current_user.is_manager %}cursor: pointer;{% endif %}">
     <div class="kanban-card-header">
         <span class="kanban-card-key">{{ issue.jira_key }}</span>
         <span class="badge badge-muted" style="font-size: 9px; padding: 2px 6px;">{{ issue.issue_type }}</span>
     </div>
-    <div class="kanban-card-title">
-        {% if current_user.is_manager %}
-        <a href="{{ url_for('jira.edit', id=issue.id) }}" style="color: var(--text-white);">{{ issue.summary }}</a>
-        {% else %}
+    <div class="kanban-card-title" style="color: var(--text-white);">
         {{ issue.summary }}
-        {% endif %}
     </div>
     <div class="kanban-card-footer">
         <div class="kanban-card-assignee">
@@ -107,6 +104,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const cards = document.querySelectorAll('.kanban-card');
     const containers = document.querySelectorAll('.kanban-cards-container');
+    const isManager = {{ 'true' if current_user.is_manager else 'false' }};
     
     cards.forEach(card => {
         card.addEventListener('dragstart', (e) => {
@@ -117,6 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
         card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
         });
+
+        // 카드 클릭 시 수정 화면 이동 이벤트 추가
+        if (isManager) {
+            card.addEventListener('click', (e) => {
+                // 드래그앤드롭 중이 아닐 때만 작동
+                if (!card.classList.contains('dragging')) {
+                    const issueId = card.dataset.id;
+                    const editUrl = "{{ url_for('jira.edit', id=999999) }}".replace('999999', issueId);
+                    window.location.href = editUrl;
+                }
+            });
+        }
     });
     
     containers.forEach(container => {
