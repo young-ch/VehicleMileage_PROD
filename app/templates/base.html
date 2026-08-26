@@ -80,6 +80,9 @@
                         <div class="user-role">{{ current_user.role.name if current_user.role }}</div>
                     </div>
                 </div>
+                <a href="{{ url_for('auth.change_password') }}" class="nav-item" style="color: var(--text-secondary); margin-top: 8px;">
+                    <span class="nav-icon">🔑</span> 비번 변경
+                </a>
                 <a href="{{ url_for('auth.logout') }}" class="nav-item mt-1" style="color: var(--danger);">
                     <span class="nav-icon">🚪</span> 로그아웃
                 </a>

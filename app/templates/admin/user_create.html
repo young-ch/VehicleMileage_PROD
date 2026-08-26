@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}사용자 생성 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>👤 사용자 생성</h2>
+    <p>새로운 시스템 사용자 계정을 직접 추가합니다</p>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+                <label class="form-label">사용자명 (ID) *</label>
+                {{ form.username(class="form-control", placeholder="로그인에 사용할 사용자 아이디") }}
+                {% for error in form.username.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">이메일 *</label>
+                {{ form.email(class="form-control", placeholder="예: user@domain.com") }}
+                {% for error in form.email.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">역할 *</label>
+                {{ form.role_id(class="form-control") }}
+                {% for error in form.role_id.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">초기 비밀번호 *</label>
+                {{ form.password(class="form-control", type="password", placeholder="최소 8자, 영문/숫자/특수문자 포함") }}
+                {% for error in form.password.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="btn-group mt-2">
+            <button type="submit" class="btn btn-primary">👤 사용자 생성 완료</button>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">취소</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

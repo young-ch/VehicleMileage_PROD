@@ -2,9 +2,14 @@
 {% block title %}사용자 관리 - SMU JIRA{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h2>⚙️ 사용자 관리</h2>
-    <p>시스템 사용자 목록을 관리하고 역할을 변경합니다</p>
+<div class="page-header page-header-actions">
+    <div>
+        <h2>⚙️ 사용자 관리</h2>
+        <p>시스템 사용자 목록을 관리하고 역할을 변경합니다</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">➕ 사용자 생성</a>
+    </div>
 </div>
 
 <div class="table-container">
@@ -48,13 +53,18 @@
                 <td style="color: var(--text-muted); font-size: 12px;">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at }}</td>
                 <td style="color: var(--text-muted); font-size: 12px;">{{ user.last_login.strftime('%m/%d %H:%M') if user.last_login else '없음' }}</td>
                 <td>
-                    <form method="POST" action="{{ url_for('admin.toggle_active', id=user.id) }}" style="display: inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm {{ 'btn-danger' if user.is_active else 'btn-success' }}"
-                                onclick="return confirmAction('{{ user.username }} 계정을 {{ '비활성화' if user.is_active else '활성화' }}하시겠습니까?')">
-                            {{ '비활성화' if user.is_active else '활성화' }}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="promptResetPassword({{ user.id }}, '{{ user.username }}')">
+                            🔑 비번 변경
                         </button>
-                    </form>
+                        <form method="POST" action="{{ url_for('admin.toggle_active', id=user.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm {{ 'btn-danger' if user.is_active else 'btn-success' }}"
+                                    onclick="return confirmAction('{{ user.username }} 계정을 {{ '비활성화' if user.is_active else '활성화' }}하시겠습니까?')">
+                                {{ '비활성화' if user.is_active else '활성화' }}
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -77,4 +87,43 @@
     {% endif %}
 </div>
 {% endif %}
+
+{% block extra_js %}
+<script>
+function promptResetPassword(userId, username) {
+    const newPassword = prompt(`'${username}' 계정의 새 비밀번호를 입력해주세요.\n(최소 8자, 영문+숫자+특수문자 포함 필수)`);
+    
+    if (newPassword === null) return; // 취소 버튼 클릭 시
+    
+    const trimmedPassword = newPassword.trim();
+    if (trimmedPassword.length < 8) {
+        alert('비밀번호는 최소 8자 이상이어야 합니다.');
+        return;
+    }
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const formData = new FormData();
+    formData.append('new_password', trimmedPassword);
+    
+    fetch(`/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message || '비밀번호 재설정에 실패했습니다.', 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('네트워크 오류가 발생했습니다.', 'danger');
+    });
+}
+</script>
+{% endblock %}
 {% endblock %}

@@ -6,7 +6,7 @@ from ..extensions import db
 from ..models.user import User, Role
 from ..utils.helpers import log_audit
 from . import auth_bp
-from .forms import LoginForm, RegisterForm
+from .forms import LoginForm, RegisterForm, ChangePasswordForm
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -81,3 +81,26 @@ def logout():
     logout_user()
     flash('로그아웃되었습니다.', 'info')
     return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """사용자 본인 비밀번호 변경"""
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if current_user.check_password(form.current_password.data):
+            current_user.set_password(form.new_password.data)
+            db.session.commit()
+            
+            log_audit('UPDATE', 'users', current_user.id, 
+                      new_values={'password_changed': True})
+            db.session.commit()
+            
+            flash('비밀번호가 성공적으로 변경되었습니다. 보안을 위해 다시 로그인해 주세요.', 'success')
+            logout_user()
+            return redirect(url_for('auth.login'))
+        else:
+            flash('현재 비밀번호가 올바르지 않습니다.', 'danger')
+            
+    return render_template('auth/change_password.html', form=form)
