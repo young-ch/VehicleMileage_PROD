@@ -59,49 +59,47 @@ def _seed_initial_data():
     """초기 데이터 시드 (역할, 관리자 계정)"""
     from .models.user import Role, User
 
-    # 기본 역할이 없으면 생성
-    if Role.query.count() == 0:
-        roles = [
-            Role(
-                name='admin',
-                description='시스템 관리자',
-                permissions={
-                    'user_manage': True,
-                    'role_manage': True,
-                    'personnel_create': True,
-                    'personnel_edit': True,
-                    'personnel_delete': True,
-                    'jira_create': True,
-                    'jira_edit': True,
-                    'jira_delete': True,
-                    'stats_view': True,
-                    'audit_view': True,
-                }
-            ),
-            Role(
-                name='manager',
-                description='매니저',
-                permissions={
-                    'personnel_create': True,
-                    'personnel_edit': True,
-                    'personnel_delete': True,
-                    'jira_create': True,
-                    'jira_edit': True,
-                    'jira_delete': True,
-                    'stats_view': True,
-                }
-            ),
-            Role(
-                name='viewer',
-                description='조회자',
-                permissions={
-                    'stats_view': True,
-                }
-            ),
-        ]
-        for role in roles:
+    # 기본 역할이 없으면 생성 또는 갱신 동기화
+    role_permissions = {
+        'admin': {
+            'user_manage': True,
+            'role_manage': True,
+            'personnel_create': True,
+            'personnel_edit': True,
+            'personnel_delete': True,
+            'jira_create': True,
+            'jira_edit': True,
+            'jira_delete': True,
+            'stats_view': True,
+            'audit_view': True,
+        },
+        'manager': {
+            'personnel_create': True,
+            'personnel_edit': True,
+            'personnel_delete': True,
+            'jira_create': True,
+            'jira_edit': True,
+            'jira_delete': True,
+            'stats_view': True,
+        },
+        'viewer': {
+            'jira_create': True,
+            'jira_edit': True,
+            'jira_delete': True,
+            'stats_view': True,
+        }
+    }
+    
+    for r_name, p_dict in role_permissions.items():
+        role = Role.query.filter_by(name=r_name).first()
+        if not role:
+            role = Role(name=r_name, description=r_name.capitalize(), permissions=p_dict)
             db.session.add(role)
-        db.session.commit()
+        else:
+            # 기존 역할이 있을 경우 최신 기획 권한으로 업데이트 동기화!
+            role.permissions = p_dict
+            
+    db.session.commit()
 
     # 기본 관리자 계정이 없으면 생성
     if User.query.filter_by(username='admin').first() is None:
