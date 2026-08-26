@@ -30,8 +30,12 @@ def generate_jira_key():
 @jira_bp.route('/')
 @login_required
 def kanban_board():
-    """JIRA 칸반보드 뷰"""
-    all_issues = JiraIssue.query.order_by(JiraIssue.updated_at.desc()).all()
+    """JIRA 칸반보드 뷰 (관리자는 전체, 일반 사용자는 본인 이슈만)"""
+    query = JiraIssue.query
+    if not current_user.is_admin:
+        query = query.filter_by(registered_by=current_user.id)
+        
+    all_issues = query.order_by(JiraIssue.updated_at.desc()).all()
     
     # 상태별 그룹화 (기존 영문 데이터 호환 매핑 포함)
     todo = []
@@ -68,6 +72,8 @@ def list_issues():
     type_filter = request.args.get('type', '')
     
     query = JiraIssue.query
+    if not current_user.is_admin:
+        query = query.filter_by(registered_by=current_user.id)
     
     if search:
         query = query.filter(
@@ -107,6 +113,11 @@ def update_status():
         return jsonify({'success': False, 'message': '잘못된 매개변수'}), 400
         
     issue = JiraIssue.query.get_or_404(data['issue_id'])
+    
+    # 보안 검증: 관리자가 아니면서 본인의 이슈가 아닌 경우 차단
+    if not current_user.is_admin and issue.registered_by != current_user.id:
+        return jsonify({'success': False, 'message': '본인의 이슈만 상태를 변경할 수 있습니다.'}), 403
+        
     old_status = issue.status
     new_status = data['status']
     
@@ -177,6 +188,12 @@ def create():
 def edit(id):
     """이슈 수정"""
     issue = JiraIssue.query.get_or_404(id)
+    
+    # 보안 검증: 관리자가 아니면서 본인 이슈가 아닌 경우
+    if not current_user.is_admin and issue.registered_by != current_user.id:
+        flash('본인이 등록한 이슈만 수정할 수 있습니다.', 'danger')
+        return redirect(url_for('jira.kanban_board'))
+        
     form = JiraIssueForm(obj=issue)
     form.assignee_id.choices = [(0, '선택하세요')] + [
         (p.id, f'{p.name} ({p.employee_id})')
@@ -210,6 +227,12 @@ def edit(id):
 def delete(id):
     """이슈 삭제"""
     issue = JiraIssue.query.get_or_404(id)
+    
+    # 보안 검증: 관리자가 아니면서 본인 이슈가 아닌 경우
+    if not current_user.is_admin and issue.registered_by != current_user.id:
+        flash('본인이 등록한 이슈만 삭제할 수 있습니다.', 'danger')
+        return redirect(url_for('jira.kanban_board'))
+        
     old_values = issue.to_dict()
     
     log_audit('DELETE', 'jira_issues', issue.id, old_values=old_values)
