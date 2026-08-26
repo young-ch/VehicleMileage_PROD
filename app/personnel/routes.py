@@ -207,19 +207,35 @@ def retire():
     return render_template('personnel/retire.html', form=form)
 
 
-@personnel_bp.route('/<int:id>/delete', methods=['POST'])
+@personnel_bp.route('/<int:id>/retire-individual', methods=['POST'])
 @login_required
-@permission_required('personnel_delete')
-def delete(id):
-    """목록에서 수동 삭제 처리 (상태를 퇴직 상태로 전환)"""
+@permission_required('personnel_edit')
+def retire_individual(id):
+    """목록에서 직접 퇴사(비활성) 처리하여 보고용 이력 남기기"""
     person = Personnel.query.get_or_404(id)
     old_values = person.to_dict()
     
     person.status = 'inactive'
     person.leave_date = date.today()
     
-    log_audit('DELETE', 'personnel', person.id, old_values=old_values)
+    log_audit('UPDATE', 'personnel', person.id, old_values=old_values, new_values=person.to_dict())
     db.session.commit()
     
-    flash(f'{person.name}님이 퇴직 처리되었습니다.', 'warning')
+    flash(f'{person.name}님이 퇴사 처리되었습니다. (실적 이력에 기록됨)', 'success')
+    return redirect(url_for('personnel.list_personnel'))
+
+
+@personnel_bp.route('/<int:id>/delete', methods=['POST'])
+@login_required
+@permission_required('personnel_delete')
+def delete(id):
+    """데이터 완전 삭제 (등록 실수 방지용)"""
+    person = Personnel.query.get_or_404(id)
+    old_values = person.to_dict()
+    
+    log_audit('HARD_DELETE', 'personnel', person.id, old_values=old_values)
+    db.session.delete(person)
+    db.session.commit()
+    
+    flash(f'{person.name}님의 데이터가 완전히 삭제되었습니다. (실적 이력에서 제외됨)', 'warning')
     return redirect(url_for('personnel.list_personnel'))
