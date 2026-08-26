@@ -131,3 +131,60 @@ function showToast(message, type = 'info') {
 function confirmAction(message) {
     return confirm(message);
 }
+
+
+// ---- 날짜 복사 붙여넣기 (Paste) 자동 파싱 정규화 헬퍼 ----
+document.addEventListener('paste', function(e) {
+    // 포커스된 요소가 날짜(type="date") 입력창인 경우에만 작동
+    const target = e.target;
+    if (target && target.tagName === 'INPUT' && target.type === 'date') {
+        // 붙여넣기된 클립보드 텍스트 획득
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        if (!pastedText) return;
+        
+        let cleaned = pastedText.trim();
+        // 끝의 온점 제거 (예: "2026. 8. 18." -> "2026. 8. 18")
+        if (cleaned.endsWith('.')) {
+            cleaned = cleaned.slice(0, -1);
+        }
+        
+        let targetDate = null;
+        
+        // 1) 8자리 숫자 판별 (예: 20260818)
+        if (/^\d{8}$/.test(cleaned)) {
+            targetDate = `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 8)}`;
+        } else {
+            // 2) 온점(.), 대시(-), 슬래시(/), 공백 등으로 구성된 경우 분리하여 매칭
+            const parts = cleaned.split(/[\.\-\/\s,]+/);
+            if (parts.length === 3) {
+                let year = parts[0].trim();
+                let month = parts[1].trim();
+                let day = parts[2].trim();
+                
+                // 년도가 4자리인 경우 (예: 2026. 8. 18)
+                if (year.length === 4) {
+                    month = month.padStart(2, '0');
+                    day = day.padStart(2, '0');
+                    targetDate = `${year}-${month}-${day}`;
+                } 
+                // 년도가 맨 뒤에 배치된 경우 (예: 18/08/2026)
+                else if (day.length === 4) {
+                    const tempYear = day;
+                    month = month.padStart(2, '0');
+                    const tempDay = year.padStart(2, '0');
+                    targetDate = `${tempYear}-${month}-${tempDay}`;
+                }
+            }
+        }
+        
+        // 올바른 날짜 포맷이 추출되었다면 기본 동작을 막고 꽂아줌
+        if (targetDate && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+            e.preventDefault();
+            target.value = targetDate;
+            
+            // 변경 이벤트 강제 트리거 (프레임워크 연동을 위해)
+            const event = new Event('change', { bubbles: true });
+            target.dispatchEvent(event);
+        }
+    }
+});
