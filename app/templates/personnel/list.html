@@ -133,7 +133,7 @@
                         {% if person.status == 'active' %}
                         <form method="POST" action="{{ url_for('personnel.delete', id=person.id) }}" style="display: inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirmAction('정말 퇴사 처리하시겠습니까?')">퇴사</button>
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirmAction('정말 퇴사(삭제) 처리하시겠습니까?')">퇴사(삭제)</button>
                         </form>
                         {% endif %}
                     </div>

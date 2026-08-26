@@ -46,8 +46,7 @@ def list_personnel():
     start_of_month = date(today.year, today.month, 1)
     
     new_hires_count = Personnel.query.filter(
-        Personnel.join_date >= start_of_month,
-        Personnel.status == 'active'
+        Personnel.join_date >= start_of_month
     ).count()
     
     retires_count = Personnel.query.filter(
