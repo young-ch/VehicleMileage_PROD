@@ -36,8 +36,11 @@ def kanban_board():
     if not current_user.is_admin:
         query = query.filter(
             db.or_(
-                JiraIssue.registered_by == current_user.id,
-                JiraIssue.assignee_id == current_user.id
+                JiraIssue.assignee_id == current_user.id,
+                db.and_(
+                    JiraIssue.assignee_id.is_(None),
+                    JiraIssue.registered_by == current_user.id
+                )
             )
         )
         
@@ -81,8 +84,11 @@ def list_issues():
     if not current_user.is_admin:
         query = query.filter(
             db.or_(
-                JiraIssue.registered_by == current_user.id,
-                JiraIssue.assignee_id == current_user.id
+                JiraIssue.assignee_id == current_user.id,
+                db.and_(
+                    JiraIssue.assignee_id.is_(None),
+                    JiraIssue.registered_by == current_user.id
+                )
             )
         )
     
@@ -125,9 +131,17 @@ def update_status():
         
     issue = JiraIssue.query.get_or_404(data['issue_id'])
     
-    # 보안 검증: 관리자가 아니면서 본인 이슈가 아니고, 담당자도 아닌 경우 차단
-    if not current_user.is_admin and issue.registered_by != current_user.id and issue.assignee_id != current_user.id:
-        return jsonify({'success': False, 'message': '본인이 생성했거나 배정받은 이슈만 상태를 변경할 수 있습니다.'}), 403
+    # 보안 검증: 관리자가 아니면서 본인 담당도 아니고, (미배정이면서 본인이 생성한 이슈)도 아닌 경우 차단
+    is_authorized = False
+    if current_user.is_admin:
+        is_authorized = True
+    elif issue.assignee_id == current_user.id:
+        is_authorized = True
+    elif issue.assignee_id is None and issue.registered_by == current_user.id:
+        is_authorized = True
+        
+    if not is_authorized:
+        return jsonify({'success': False, 'message': '해당 이슈의 상태를 변경할 권한이 없습니다.'}), 403
         
     old_status = issue.status
     new_status = data['status']
@@ -201,9 +215,17 @@ def edit(id):
     """이슈 수정"""
     issue = JiraIssue.query.get_or_404(id)
     
-    # 보안 검증: 관리자가 아니면서 본인 이슈가 아니고, 담당자도 아닌 경우
-    if not current_user.is_admin and issue.registered_by != current_user.id and issue.assignee_id != current_user.id:
-        flash('본인이 등록했거나 배정받은 이슈만 수정할 수 있습니다.', 'danger')
+    # 보안 검증: 관리자가 아니면서 본인 담당도 아니고, (미배정이면서 본인이 생성한 이슈)도 아닌 경우 차단
+    is_authorized = False
+    if current_user.is_admin:
+        is_authorized = True
+    elif issue.assignee_id == current_user.id:
+        is_authorized = True
+    elif issue.assignee_id is None and issue.registered_by == current_user.id:
+        is_authorized = True
+        
+    if not is_authorized:
+        flash('해당 이슈를 수정할 권한이 없습니다.', 'danger')
         return redirect(url_for('jira.kanban_board'))
         
     # 유효한 유저 ID 목록 취득 및 셀렉트 박스 초이스 제공
@@ -255,9 +277,17 @@ def delete(id):
     """이슈 삭제"""
     issue = JiraIssue.query.get_or_404(id)
     
-    # 보안 검증: 관리자가 아니면서 본인 이슈가 아니고, 담당자도 아닌 경우
-    if not current_user.is_admin and issue.registered_by != current_user.id and issue.assignee_id != current_user.id:
-        flash('본인이 등록했거나 배정받은 이슈만 삭제할 수 있습니다.', 'danger')
+    # 보안 검증: 관리자가 아니면서 본인 담당도 아니고, (미배정이면서 본인이 생성한 이슈)도 아닌 경우 차단
+    is_authorized = False
+    if current_user.is_admin:
+        is_authorized = True
+    elif issue.assignee_id == current_user.id:
+        is_authorized = True
+    elif issue.assignee_id is None and issue.registered_by == current_user.id:
+        is_authorized = True
+        
+    if not is_authorized:
+        flash('해당 이슈를 삭제할 권한이 없습니다.', 'danger')
         return redirect(url_for('jira.kanban_board'))
         
     old_values = issue.to_dict()

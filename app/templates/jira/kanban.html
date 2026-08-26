@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 showToast(data.message, 'success');
                 updateCounters();
+                setTimeout(() => window.location.reload(), 600);
             } else {
                 showToast(data.message || '상태 변경에 실패했습니다.', 'danger');
                 setTimeout(() => window.location.reload(), 1000);
