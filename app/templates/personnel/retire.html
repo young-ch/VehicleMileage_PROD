@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}퇴사 처리 - SMU JIRA{% endblock %}
+{% block title %}퇴직자 등록 - SMU JIRA{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h2>🚪 퇴사 처리 (삭제)</h2>
-    <p>퇴직자의 성함을 입력하면 시스템에서 자동으로 퇴직 처리를 수행합니다</p>
+    <h2>🚪 퇴직자 이력 등록</h2>
+    <p>퇴직자의 정보를 입력하여 DB에 이력을 즉시 생성합니다</p>
 </div>
 
-<div class="card" style="max-width: 500px;">
+<div class="card" style="max-width: 600px;">
     <form method="POST">
         {{ form.hidden_tag() }}
 
@@ -16,23 +16,35 @@
                 <label class="form-label">퇴직자 성함 *</label>
                 {{ form.name(class="form-control", placeholder="예: 김민희") }}
                 {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-                <span style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
-                    * 이름이 데이터베이스에 등록된 재직 인원과 정확히 일치해야 합니다.
-                </span>
             </div>
 
             <div class="form-group">
-                <label class="form-label">퇴사일자</label>
+                <label class="form-label">퇴사일자 *</label>
                 {{ form.leave_date(class="form-control", type="date") }}
                 {% for error in form.leave_date.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-                <span style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
-                    * 입력하지 않으면 오늘 날짜가 퇴사일로 지정됩니다.
-                </span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">지역 / 부서 (선택)</label>
+                {{ form.department_name(class="form-control", placeholder="예: 경기도 이천시") }}
+                {% for error in form.department_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">직위 (선택)</label>
+                {{ form.position(class="form-control", placeholder="예: 국장, 주임, 대리") }}
+                {% for error in form.position.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">사용 아이디 (선택)</label>
+                {{ form.employee_id(class="form-control", placeholder="미입력 시 고유 아이디 자동 생성") }}
+                {% for error in form.employee_id.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
         </div>
 
         <div class="btn-group mt-2">
-            <button type="submit" class="btn btn-danger" onclick="return confirmAction('정말 해당 인원을 퇴사(삭제) 처리하시겠습니까?')">🚪 퇴사 처리 실행</button>
+            <button type="submit" class="btn btn-danger">🚪 퇴직자 등록 실행</button>
             <a href="{{ url_for('personnel.list_personnel') }}" class="btn btn-secondary">취소</a>
         </div>
     </form>

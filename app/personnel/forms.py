@@ -24,10 +24,13 @@ class PersonnelForm(FlaskForm):
 
 
 class RetireForm(FlaskForm):
-    """이름만 입력하여 퇴사 처리하는 폼"""
+    """퇴직자 직접 등록 및 퇴사 처리 폼"""
     name = StringField('퇴직자 성함 *', validators=[
-        DataRequired(message='퇴직 처리할 인원의 이름을 입력해주세요.'),
+        DataRequired(message='퇴직자 성함을 입력해주세요.'),
         Length(max=50)
     ])
     leave_date = DateField('퇴사일자', format='%Y-%m-%d', validators=[Optional()])
-    submit = SubmitField('퇴사 처리 실행')
+    department_name = StringField('지역 / 부서', validators=[Optional(), Length(max=100)])
+    position = StringField('직위', validators=[Optional(), Length(max=50)])
+    employee_id = StringField('사용 아이디', validators=[Optional(), Length(max=30)])
+    submit = SubmitField('퇴직자 등록 실행')

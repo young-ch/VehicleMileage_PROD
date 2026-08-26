@@ -170,41 +170,93 @@ def edit(id):
 @login_required
 @permission_required('personnel_edit')
 def retire():
-    """성함만 입력해서 퇴사 처리"""
+    """퇴직자 등록 (신규로 퇴직 상태인 인원 생성 혹은 기존 재직자 퇴직 처리)"""
     form = RetireForm()
     
     if form.validate_on_submit():
         name = form.name.data.strip()
         leave_date = form.leave_date.data if form.leave_date.data else date.today()
+        dept_name = form.department_name.data.strip() if form.department_name.data else ""
+        position = form.position.data.strip() if form.position.data else None
+        emp_id = form.employee_id.data.strip() if form.employee_id.data else ""
         
-        # 재직 중(active)이거나 휴직 중(leave)인 해당 성함의 인원 조회
+        # 부서(지역) 처리 (입력되었고 없을 경우 자동 신설)
+        dept = None
+        if dept_name:
+            dept = Department.query.filter_by(name=dept_name).first()
+            if not dept:
+                dept = Department(name=dept_name, is_active=True)
+                db.session.add(dept)
+                db.session.flush()
+        
+        # 1. 재직 중(active)인 해당 성함의 인원 조회
         active_persons = Personnel.query.filter(
             Personnel.name == name,
             Personnel.status.in_(['active', 'leave'])
         ).all()
         
-        if not active_persons:
-            flash(f"재직 중인 '{name}' 성함의 인원을 찾을 수 없습니다.", 'warning')
-            return render_template('personnel/retire.html', form=form)
+        # 2. 기존 재직자가 존재하는 경우 -> 기존 상태 변경
+        if active_persons:
+            if len(active_persons) > 1:
+                flash(f"'{name}' 성함의 재직 인원이 여러 명 존재합니다. 동명이인 방지를 위해 목록 뷰에서 특정 사번을 찾아 직접 수정해 주세요.", 'danger')
+                return render_template('personnel/retire.html', form=form)
+                
+            person = active_persons[0]
+            old_values = person.to_dict()
             
-        # 동명이인이 있는 경우
-        if len(active_persons) > 1:
-            flash(f"'{name}' 성함의 인원이 여러 명 존재합니다. 동명이인 방지를 위해 목록 뷰에서 특정 사번을 찾아 직접 삭제(수정)해 주세요.", 'danger')
-            return render_template('personnel/retire.html', form=form)
+            person.status = 'inactive'
+            person.leave_date = leave_date
+            if dept:
+                person.department_id = dept.id
+            if position:
+                person.position = position
+                person.rank = position
+            if emp_id:
+                person.employee_id = emp_id
+                
+            log_audit('UPDATE', 'personnel', person.id, old_values=old_values, new_values=person.to_dict())
+            db.session.commit()
             
-        # 1명만 존재하는 경우 즉시 퇴사 처리
-        person = active_persons[0]
-        old_values = person.to_dict()
-        
-        person.status = 'inactive'
-        person.leave_date = leave_date
-        
-        log_audit('UPDATE', 'personnel', person.id, old_values=old_values, new_values=person.to_dict())
-        db.session.commit()
-        
-        flash(f'{person.name}님이 정상 퇴사(삭제) 처리되었습니다. (퇴사일자: {leave_date})', 'success')
-        return redirect(url_for('personnel.list_personnel'))
-        
+            flash(f"기존 재직자 {person.name}님이 정상적으로 퇴사 처리되었습니다. (이력 보존)", 'success')
+            return redirect(url_for('personnel.list_personnel'))
+            
+        # 3. 기존 재직자가 존재하지 않는 경우 -> 신규 퇴직자로 바로 DB에 삽입 (기록 보존)
+        else:
+            if not emp_id:
+                # 퇴직자 사번(ID) 자동 생성 (RET-2000X)
+                max_id = db.session.query(db.func.max(Personnel.id)).scalar() or 0
+                next_num = max_id + 20001
+                emp_id = f"RET-{next_num}"
+                while Personnel.query.filter_by(employee_id=emp_id).first() is not None:
+                    next_num += 1
+                    emp_id = f"RET-{next_num}"
+            
+            # 사번 중복 확인
+            existing = Personnel.query.filter_by(employee_id=emp_id).first()
+            if existing:
+                flash(f"이미 존재하는 사용 아이디({emp_id})입니다.", 'danger')
+                return render_template('personnel/retire.html', form=form)
+                
+            person = Personnel(
+                employee_id=emp_id,
+                name=name,
+                department_id=dept.id if dept else None,
+                position=position,
+                rank=position,
+                join_date=leave_date,  # 입사일자도 기록을 위해 우선 퇴사일로 기재
+                leave_date=leave_date,
+                status='inactive',
+                registered_by=current_user.id,
+            )
+            db.session.add(person)
+            db.session.flush()
+            
+            log_audit('CREATE', 'personnel', person.id, new_values=person.to_dict())
+            db.session.commit()
+            
+            flash(f"신규 퇴직자 {person.name}님이 정상 등록되었습니다. (이력 보존)", 'success')
+            return redirect(url_for('personnel.list_personnel'))
+            
     return render_template('personnel/retire.html', form=form)
 
 
