@@ -18,26 +18,45 @@ def index():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """메인 대시보드"""
+    """메인 대시보드 (일반 사용자는 본인 관련 활동 및 이슈만 노출, 관리자는 전체 노출)"""
+    from ..extensions import db
+    
+    # 일반 사용자용 JIRA 이슈 쿼리 필터링 정의
+    jira_query = JiraIssue.query
+    if not current_user.is_admin:
+        jira_query = jira_query.filter(
+            db.or_(
+                JiraIssue.assignee_id == current_user.id,
+                db.and_(
+                    JiraIssue.assignee_id.is_(None),
+                    JiraIssue.registered_by == current_user.id
+                )
+            )
+        )
+        
     # 요약 카드 데이터
     stats = {
         'total_personnel': Personnel.query.filter_by(status='active').count(),
-        'total_issues': JiraIssue.query.count(),
-        'open_issues': JiraIssue.query.filter(
-            JiraIssue.status.in_(['Open', 'In Progress', 'To Do', 'open', 'in_progress'])
+        'total_issues': jira_query.count(),
+        'open_issues': jira_query.filter(
+            JiraIssue.status.in_(['Open', 'In Progress', 'To Do', 'open', 'in_progress', '시작전', '진행', '보류'])
         ).count(),
-        'resolved_issues': JiraIssue.query.filter(
-            JiraIssue.status.in_(['Resolved', 'Closed', 'Done', 'resolved', 'closed', 'done'])
+        'resolved_issues': jira_query.filter(
+            JiraIssue.status.in_(['Resolved', 'Closed', 'Done', 'resolved', 'closed', 'done', '완료'])
         ).count(),
     }
     
-    # 최근 활동 (감사 로그)
-    recent_logs = AuditLog.query.order_by(
+    # 최근 활동 (감사 로그) - 관리자가 아니면 본인이 수행한 로그만 노출
+    log_query = AuditLog.query
+    if not current_user.is_admin:
+        log_query = log_query.filter_by(user_id=current_user.id)
+        
+    recent_logs = log_query.order_by(
         AuditLog.created_at.desc()
     ).limit(10).all()
     
     # 최근 등록된 JIRA 이슈
-    recent_issues = JiraIssue.query.order_by(
+    recent_issues = jira_query.order_by(
         JiraIssue.created_at.desc()
     ).limit(5).all()
     
