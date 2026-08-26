@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from ..extensions import db
 from ..models.jira import JiraIssue, IssueComment
 from ..models.personnel import Personnel
+from ..models.user import User
 from ..models.audit import PasteHistory
 from ..utils.decorators import permission_required
 from ..utils.helpers import log_audit, parse_date
@@ -205,15 +206,20 @@ def edit(id):
         flash('본인이 등록했거나 배정받은 이슈만 수정할 수 있습니다.', 'danger')
         return redirect(url_for('jira.kanban_board'))
         
+    # 유효한 유저 ID 목록 취득 및 셀렉트 박스 초이스 제공
+    active_users = User.query.filter_by(is_active=True).all()
+    valid_user_ids = [u.id for u in active_users]
+    
     form = JiraIssueForm(obj=issue)
     form.assignee_id.choices = [(0, '선택하세요')] + [
         (u.id, u.username)
-        for u in User.query.filter_by(is_active=True).all()
+        for u in active_users
     ]
     
-    # DB의 assignee_id가 None이면 폼의 선택하세요(0)로 수동 매핑
-    if request.method == 'GET' and issue.assignee_id is None:
-        form.assignee_id.data = 0
+    # DB의 assignee_id가 None이거나 현재 가입된 회원 ID가 아니면 0(선택 안함)으로 강제 보정
+    if request.method == 'GET':
+        if issue.assignee_id is None or issue.assignee_id not in valid_user_ids:
+            form.assignee_id.data = 0
         
     if form.validate_on_submit():
         old_values = issue.to_dict()
