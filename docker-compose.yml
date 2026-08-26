@@ -2,13 +2,15 @@ version: '3.8'
 
 services:
   # 1. 웹 서버 (파이썬)
-  web:
+  web:                     # 👈 중복된 smu-jira-app: 줄은 지우고 web: 만 남깁니다.
     build: .
     container_name: smu-jira-app
     ports:
       - "8885:5000"
     depends_on:
       - db
+    env_file:              # 👈 여기에 위치해야 합니다. (띄어쓰기 칸 수 맞추기)
+      - .env
     environment:
       - TZ=Asia/Seoul
 
@@ -18,15 +20,16 @@ services:
     container_name: smu-jira-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: my_strong_root_password  # 원하는 루트 비밀번호로 변경하세요
+      MYSQL_ROOT_PASSWORD: my_strong_root_password
       MYSQL_DATABASE: smu_jira
       MYSQL_USER: smu_admin
-      MYSQL_PASSWORD: smu_admin_password           # 원하는 계정 비밀번호로 변경하세요
+      MYSQL_PASSWORD: smu_admin_password
       TZ: Asia/Seoul
     ports:
       - "3306:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql # DB 데이터 영구 저장 (컨테이너가 지워져도 데이터 유지)
-      
+      - mariadb_data:/var/lib/mysql
+
 volumes:
-  mariadb_data:
+  mariadb_data:            # 👈 맨 밑에는 이것만 깔끔하게 남겨주세요.
+
