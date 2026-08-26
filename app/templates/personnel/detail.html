@@ -1,59 +1,46 @@
 {% extends "base.html" %}
-{% block title %}인원 {{ '등록' if mode == 'create' else '수정' }} - SMU JIRA{% endblock %}
+{% block title %}신입 등록 - SMU JIRA{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <h2>인원 {{ '등록' if mode == 'create' else '수정' }}</h2>
-    <p>{{ '새 인원을 등록합니다' if mode == 'create' else person.name + '님의 정보를 수정합니다' }}</p>
+    <p>{{ '새로운 인원 정보를 입력하여 등록합니다' if mode == 'create' else person.name + '님의 정보를 수정합니다' }}</p>
 </div>
 
-<div class="card" style="max-width: 800px;">
+<div class="card" style="max-width: 600px;">
     <form method="POST">
         {{ form.hidden_tag() }}
 
-        <div class="form-grid">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
             <div class="form-group">
-                <label class="form-label">사번 *</label>
-                {{ form.employee_id(class="form-control", placeholder="EMP-001") }}
-                {% for error in form.employee_id.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="form-group">
-                <label class="form-label">이름 *</label>
-                {{ form.name(class="form-control", placeholder="홍길동") }}
+                <label class="form-label">성명 *</label>
+                {{ form.name(class="form-control", placeholder="예: 홍길동") }}
                 {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
+
             <div class="form-group">
-                <label class="form-label">부서</label>
-                {{ form.department_id(class="form-control") }}
+                <label class="form-label">사용 아이디 *</label>
+                {{ form.employee_id(class="form-control", placeholder="예: user1234") }}
+                {% for error in form.employee_id.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
+
             <div class="form-group">
-                <label class="form-label">직급</label>
-                {{ form.rank(class="form-control", placeholder="과장") }}
+                <label class="form-label">지역 / 부서 *</label>
+                {{ form.department_name(class="form-control", placeholder="예: 경기 이천시") }}
+                {% for error in form.department_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+                <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">* 입력한 지역이 없는 경우 자동으로 신설됩니다.</span>
             </div>
+
             <div class="form-group">
                 <label class="form-label">직위</label>
-                {{ form.position(class="form-control", placeholder="팀장") }}
+                {{ form.position(class="form-control", placeholder="예: 국장, 주임, 대리") }}
+                {% for error in form.position.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
+
             <div class="form-group">
-                <label class="form-label">이메일</label>
-                {{ form.email(class="form-control", placeholder="email@smu.ac.kr") }}
-                {% for error in form.email.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="form-group">
-                <label class="form-label">전화번호</label>
-                {{ form.phone(class="form-control", placeholder="010-1234-5678") }}
-            </div>
-            <div class="form-group">
-                <label class="form-label">상태</label>
-                {{ form.status(class="form-control") }}
-            </div>
-            <div class="form-group">
-                <label class="form-label">입사일</label>
+                <label class="form-label">입사일자</label>
                 {{ form.join_date(class="form-control", type="date") }}
-            </div>
-            <div class="form-group">
-                <label class="form-label">퇴사일</label>
-                {{ form.leave_date(class="form-control", type="date") }}
+                {% for error in form.join_date.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
         </div>
 

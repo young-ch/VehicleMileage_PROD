@@ -45,3 +45,32 @@ class JiraPasteForm(FlaskForm):
         DataRequired(message='데이터를 붙여넣어주세요.')
     ])
     submit = SubmitField('파싱 및 미리보기')
+
+
+class PersonnelForm(FlaskForm):
+    """신규 인원 등록용 폼 (5가지 항목)"""
+    name = StringField('성명 *', validators=[
+        DataRequired(message='성명을 입력해주세요.'),
+        Length(max=100)
+    ])
+    position = StringField('직위', validators=[Optional(), Length(max=50)])
+    join_date = DateField('입사일자', format='%Y-%m-%d', validators=[Optional()])
+    employee_id = StringField('사용 아이디 *', validators=[
+        DataRequired(message='사용 아이디를 입력해주세요.'),
+        Length(max=30)
+    ])
+    department_name = StringField('지역 / 부서 *', validators=[
+        DataRequired(message='지역 또는 부서명을 입력해주세요.'),
+        Length(max=100)
+    ])
+    submit = SubmitField('저장')
+
+
+class RetireForm(FlaskForm):
+    """이름만 입력하여 퇴사 처리하는 폼"""
+    name = StringField('퇴직자 성함 *', validators=[
+        DataRequired(message='퇴직 처리할 인원의 이름을 입력해주세요.'),
+        Length(max=100)
+    ])
+    leave_date = DateField('퇴사일자', format='%Y-%m-%d', validators=[Optional()])
+    submit = SubmitField('퇴사 처리 실행')
