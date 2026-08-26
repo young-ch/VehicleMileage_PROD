@@ -124,9 +124,9 @@
 <div class="empty-state">
     <div class="icon">🎫</div>
     <h3>등록된 이슈가 없습니다</h3>
-    <p>JIRA 이슈를 등록하거나 텍스트를 붙여넣어 일괄 등록해보세요</p>
+    <p>새로운 JIRA 이슈를 등록해보세요</p>
     {% if current_user.is_manager %}
-    <a href="{{ url_for('jira.paste') }}" class="btn btn-primary mt-2">📋 텍스트 붙여넣기</a>
+    <a href="{{ url_for('jira.create') }}" class="btn btn-primary mt-2">➕ 이슈 등록</a>
     {% endif %}
 </div>
 {% endif %}
