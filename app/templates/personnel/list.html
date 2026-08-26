@@ -82,6 +82,11 @@
         <div class="search-input" style="flex: 1; min-width: 200px;">
             <input type="text" name="search" class="form-control" placeholder="성명, 아이디로 검색..." value="{{ search }}">
         </div>
+        <select name="status" class="form-control" style="max-width: 140px;">
+            <option value="">전체 상태</option>
+            <option value="active" {{ 'selected' if status_filter == 'active' }}>재직</option>
+            <option value="inactive" {{ 'selected' if status_filter == 'inactive' }}>퇴직</option>
+        </select>
         <button type="submit" class="btn btn-secondary">검색</button>
     </form>
 </div>
