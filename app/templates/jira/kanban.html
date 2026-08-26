@@ -9,7 +9,7 @@
     </div>
     <div class="btn-group">
         <a href="{{ url_for('jira.list_issues') }}" class="btn btn-secondary">📋 목록 뷰 보기</a>
-        {% if current_user.is_manager %}
+        {% if current_user.has_permission('jira_create') %}
         <a href="{{ url_for('jira.create') }}" class="btn btn-primary">➕ 이슈 등록</a>
         {% endif %}
     </div>
