@@ -5,6 +5,7 @@ services:
   web:                     # 👈 중복된 smu-jira-app: 줄은 지우고 web: 만 남깁니다.
     build: .
     container_name: smu-jira-app
+    restart: always 
     ports:
       - "8885:5000"
     depends_on:
@@ -23,7 +24,7 @@ services:
       MYSQL_ROOT_PASSWORD: my_strong_root_password
       MYSQL_DATABASE: smu_jira
       MYSQL_USER: smu_admin
-      MYSQL_PASSWORD: smu_admin_password
+      MYSQL_PASSWORD: smu2600
       TZ: Asia/Seoul
     ports:
       - "3306:3306"
