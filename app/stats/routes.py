@@ -5,6 +5,7 @@ from sqlalchemy import func
 from ..extensions import db
 from ..models.personnel import Personnel, Department
 from ..models.jira import JiraIssue
+from ..models.user import User
 from ..utils.decorators import permission_required
 from . import stats_bp
 
@@ -21,21 +22,20 @@ def dashboard():
 @login_required
 @permission_required('stats_view')
 def personnel_stats():
-    """인원 통계 API"""
-    # 부서별 인원
-    dept_stats = db.session.query(
-        Department.name,
-        func.count(Personnel.id)
-    ).outerjoin(Personnel, db.and_(
-        Personnel.department_id == Department.id,
-        Personnel.status == 'active'
-    )).group_by(Department.name).all()
-    
-    # 상태별 인원
+    """인원 통계 API (부서 통계 제외, 상태 통계를 입사/퇴사로 분류)"""
+    # 상태별 인원 (active/inactive만 분류)
     status_stats = db.session.query(
         Personnel.status,
         func.count(Personnel.id)
-    ).group_by(Personnel.status).all()
+    ).filter(Personnel.status.in_(['active', 'inactive']))\
+     .group_by(Personnel.status).all()
+     
+    status_labels = []
+    status_data = []
+    for s in status_stats:
+        label = '입사(재직)' if s[0] == 'active' else '퇴사(퇴직)'
+        status_labels.append(label)
+        status_data.append(s[1])
     
     # 직급별 인원
     rank_stats = db.session.query(
@@ -47,13 +47,9 @@ def personnel_stats():
     ).group_by(Personnel.rank).all()
     
     return jsonify({
-        'department': {
-            'labels': [d[0] for d in dept_stats],
-            'data': [d[1] for d in dept_stats],
-        },
         'status': {
-            'labels': [s[0] or '미설정' for s in status_stats],
-            'data': [s[1] for s in status_stats],
+            'labels': status_labels,
+            'data': status_data,
         },
         'rank': {
             'labels': [r[0] or '미설정' for r in rank_stats],
@@ -86,12 +82,11 @@ def jira_stats():
     ).group_by(JiraIssue.issue_type).all()
     
     # 담당자별 이슈 (상위 10명)
-    from ..models.personnel import Personnel
     assignee_stats = db.session.query(
-        Personnel.name,
+        User.username,
         func.count(JiraIssue.id)
-    ).join(Personnel, JiraIssue.assignee_id == Personnel.id
-    ).group_by(Personnel.name
+    ).join(User, JiraIssue.assignee_id == User.id
+    ).group_by(User.username
     ).order_by(func.count(JiraIssue.id).desc()
     ).limit(10).all()
     

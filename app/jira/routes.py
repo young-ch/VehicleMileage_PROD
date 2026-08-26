@@ -33,7 +33,12 @@ def kanban_board():
     """JIRA 칸반보드 뷰 (관리자는 전체, 일반 사용자는 본인 이슈만)"""
     query = JiraIssue.query
     if not current_user.is_admin:
-        query = query.filter_by(registered_by=current_user.id)
+        query = query.filter(
+            db.or_(
+                JiraIssue.registered_by == current_user.id,
+                JiraIssue.assignee_id == current_user.id
+            )
+        )
         
     all_issues = query.order_by(JiraIssue.updated_at.desc()).all()
     
@@ -73,7 +78,12 @@ def list_issues():
     
     query = JiraIssue.query
     if not current_user.is_admin:
-        query = query.filter_by(registered_by=current_user.id)
+        query = query.filter(
+            db.or_(
+                JiraIssue.registered_by == current_user.id,
+                JiraIssue.assignee_id == current_user.id
+            )
+        )
     
     if search:
         query = query.filter(
@@ -114,9 +124,9 @@ def update_status():
         
     issue = JiraIssue.query.get_or_404(data['issue_id'])
     
-    # 보안 검증: 관리자가 아니면서 본인의 이슈가 아닌 경우 차단
-    if not current_user.is_admin and issue.registered_by != current_user.id:
-        return jsonify({'success': False, 'message': '본인의 이슈만 상태를 변경할 수 있습니다.'}), 403
+    # 보안 검증: 관리자가 아니면서 본인 이슈가 아니고, 담당자도 아닌 경우 차단
+    if not current_user.is_admin and issue.registered_by != current_user.id and issue.assignee_id != current_user.id:
+        return jsonify({'success': False, 'message': '본인이 생성했거나 배정받은 이슈만 상태를 변경할 수 있습니다.'}), 403
         
     old_status = issue.status
     new_status = data['status']
@@ -138,8 +148,8 @@ def create():
     """이슈 개별 등록"""
     form = JiraIssueForm()
     form.assignee_id.choices = [(0, '선택하세요')] + [
-        (p.id, f'{p.name} ({p.employee_id})') 
-        for p in Personnel.query.filter_by(status='active').all()
+        (u.id, u.username) 
+        for u in User.query.filter_by(is_active=True).all()
     ]
     
     if form.validate_on_submit():
@@ -189,15 +199,15 @@ def edit(id):
     """이슈 수정"""
     issue = JiraIssue.query.get_or_404(id)
     
-    # 보안 검증: 관리자가 아니면서 본인 이슈가 아닌 경우
-    if not current_user.is_admin and issue.registered_by != current_user.id:
-        flash('본인이 등록한 이슈만 수정할 수 있습니다.', 'danger')
+    # 보안 검증: 관리자가 아니면서 본인 이슈가 아니고, 담당자도 아닌 경우
+    if not current_user.is_admin and issue.registered_by != current_user.id and issue.assignee_id != current_user.id:
+        flash('본인이 등록했거나 배정받은 이슈만 수정할 수 있습니다.', 'danger')
         return redirect(url_for('jira.kanban_board'))
         
     form = JiraIssueForm(obj=issue)
     form.assignee_id.choices = [(0, '선택하세요')] + [
-        (p.id, f'{p.name} ({p.employee_id})')
-        for p in Personnel.query.filter_by(status='active').all()
+        (u.id, u.username)
+        for u in User.query.filter_by(is_active=True).all()
     ]
     
     if form.validate_on_submit():
@@ -228,9 +238,9 @@ def delete(id):
     """이슈 삭제"""
     issue = JiraIssue.query.get_or_404(id)
     
-    # 보안 검증: 관리자가 아니면서 본인 이슈가 아닌 경우
-    if not current_user.is_admin and issue.registered_by != current_user.id:
-        flash('본인이 등록한 이슈만 삭제할 수 있습니다.', 'danger')
+    # 보안 검증: 관리자가 아니면서 본인 이슈가 아니고, 담당자도 아닌 경우
+    if not current_user.is_admin and issue.registered_by != current_user.id and issue.assignee_id != current_user.id:
+        flash('본인이 등록했거나 배정받은 이슈만 삭제할 수 있습니다.', 'danger')
         return redirect(url_for('jira.kanban_board'))
         
     old_values = issue.to_dict()

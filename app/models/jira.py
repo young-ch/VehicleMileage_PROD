@@ -14,7 +14,7 @@ class JiraIssue(db.Model):
     issue_type = db.Column(db.String(30))     # Bug, Task, Story, Epic
     priority = db.Column(db.String(20))        # Critical, High, Medium, Low
     status = db.Column(db.String(30))          # Open, In Progress, Resolved, Closed
-    assignee_id = db.Column(db.Integer, db.ForeignKey('personnel.id'))
+    assignee_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     reporter = db.Column(db.String(100))
     created_date = db.Column(db.Date)          # JIRA에서의 생성일
     resolved_date = db.Column(db.Date)
@@ -32,12 +32,14 @@ class JiraIssue(db.Model):
     # 관계
     registrar = db.relationship('User', foreign_keys=[registered_by],
                                 backref='registered_issues')
+    assignee = db.relationship('User', foreign_keys=[assignee_id],
+                               backref='assigned_issues')
     comments = db.relationship('IssueComment', backref='issue',
                                lazy='dynamic', cascade='all, delete-orphan')
 
     @property
     def assignee_name(self):
-        return self.assignee_person.name if self.assignee_person else '미배정'
+        return self.assignee.username if self.assignee else '미배정'
 
     def to_dict(self):
         """딕셔너리 변환"""

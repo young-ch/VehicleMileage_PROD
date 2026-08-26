@@ -13,14 +13,10 @@
 
 <!-- Personnel Charts -->
 <h3 style="font-size: 16px; color: var(--text-white); margin-bottom: 16px;">👥 인원 통계</h3>
-<div class="charts-grid mb-3">
+<div class="charts-grid mb-3" style="grid-template-columns: 1fr;">
     <div class="chart-card">
-        <h4 class="card-title mb-2">부서별 인원</h4>
-        <canvas id="chart-dept"></canvas>
-    </div>
-    <div class="chart-card">
-        <h4 class="card-title mb-2">상태별 인원</h4>
-        <canvas id="chart-status"></canvas>
+        <h4 class="card-title mb-2">상태별 인원 (입사 vs 퇴사)</h4>
+        <canvas id="chart-status" style="max-height: 300px;"></canvas>
     </div>
 </div>
 
@@ -69,20 +65,6 @@ const chartDefaults = {
 fetch('{{ url_for("stats.personnel_stats") }}')
     .then(r => r.json())
     .then(data => {
-        // Department chart
-        new Chart(document.getElementById('chart-dept'), {
-            type: 'doughnut',
-            data: {
-                labels: data.department.labels,
-                datasets: [{
-                    data: data.department.data,
-                    backgroundColor: CHART_COLORS,
-                    borderWidth: 0,
-                }]
-            },
-            options: { ...chartDefaults, cutout: '60%' }
-        });
-        
         // Status chart
         new Chart(document.getElementById('chart-status'), {
             type: 'pie',
@@ -90,11 +72,14 @@ fetch('{{ url_for("stats.personnel_stats") }}')
                 labels: data.status.labels,
                 datasets: [{
                     data: data.status.data,
-                    backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
+                    backgroundColor: ['#22c55e', '#ef4444'],
                     borderWidth: 0,
                 }]
             },
-            options: chartDefaults
+            options: {
+                ...chartDefaults,
+                maintainAspectRatio: false
+            }
         });
     });
 

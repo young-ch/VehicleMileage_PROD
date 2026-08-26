@@ -44,7 +44,6 @@ class Personnel(db.Model):
     # 관계
     registrar = db.relationship('User', foreign_keys=[registered_by],
                                 backref='registered_personnel')
-    jira_issues = db.relationship('JiraIssue', backref='assignee_person', lazy='dynamic')
 
     @property
     def is_active_employee(self):
