@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # 1. 웹 서버 (파이썬)
+  web:
+    build: .
+    container_name: smu-jira-app
+    ports:
+      - "8885:5000"
+    depends_on:
+      - db
+    environment:
+      - TZ=Asia/Seoul
+
+  # 2. 데이터베이스 (MariaDB)
+  db:
+    image: mariadb:10.11
+    container_name: smu-jira-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: my_strong_root_password  # 원하는 루트 비밀번호로 변경하세요
+      MYSQL_DATABASE: smu_jira
+      MYSQL_USER: smu_admin
+      MYSQL_PASSWORD: smu_admin_password           # 원하는 계정 비밀번호로 변경하세요
+      TZ: Asia/Seoul
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql # DB 데이터 영구 저장 (컨테이너가 지워져도 데이터 유지)
+      
+volumes:
+  mariadb_data:
