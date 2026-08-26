@@ -37,10 +37,12 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title">관리</div>
+                    {% if current_user.is_manager %}
                     <a href="{{ url_for('personnel.list_personnel') }}" 
                        class="nav-item {{ 'active' if request.blueprint == 'personnel' }}">
                         <span class="nav-icon">👥</span> 인원 관리
                     </a>
+                    {% endif %}
                     <a href="{{ url_for('jira.list_issues') }}" 
                        class="nav-item {{ 'active' if request.blueprint == 'jira' }}">
                         <span class="nav-icon">🎫</span> JIRA 이슈

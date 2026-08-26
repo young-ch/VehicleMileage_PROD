@@ -17,7 +17,7 @@
 
     <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
         <strong style="color: var(--text-primary);">📌 사용법:</strong> JIRA 이슈 목록을 엑셀에서 복사(Ctrl+C)한 후 아래에 붙여넣기(Ctrl+V)하세요.<br>
-        <strong>컬럼 순서:</strong> Key | 제목 | 유형 | 우선순위 | 상태 | 담당자 | 보고자 | 생성일 | 스프린트 (헤더 포함 시 자동 인식)
+        <strong>컬럼 순서:</strong> Key(비워두면 자동생성) | 제목 | 유형 | 우선순위 | 상태 | 담당자 | 보고자 | 생성일 (헤더 포함 시 자동 인식)
     </div>
 
     <form method="POST" action="{{ url_for('jira.paste') }}">

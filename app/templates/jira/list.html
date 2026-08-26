@@ -9,8 +9,7 @@
     </div>
     {% if current_user.is_manager %}
     <div class="btn-group">
-        <a href="{{ url_for('jira.paste') }}" class="btn btn-primary">📋 텍스트 붙여넣기</a>
-        <a href="{{ url_for('jira.create') }}" class="btn btn-secondary">➕ 이슈 등록</a>
+        <a href="{{ url_for('jira.create') }}" class="btn btn-primary">➕ 이슈 등록</a>
     </div>
     {% endif %}
 </div>
@@ -54,7 +53,6 @@
                 <th>우선순위</th>
                 <th>상태</th>
                 <th>담당자</th>
-                <th>스프린트</th>
                 {% if current_user.is_manager %}
                 <th>작업</th>
                 {% endif %}
@@ -83,7 +81,6 @@
                     </span>
                 </td>
                 <td>{{ issue.assignee_name }}</td>
-                <td style="color: var(--text-muted); font-size: 12px;">{{ issue.sprint or '-' }}</td>
                 {% if current_user.is_manager %}
                 <td>
                     <div class="btn-group">

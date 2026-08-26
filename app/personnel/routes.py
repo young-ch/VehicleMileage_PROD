@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from ..extensions import db
 from ..models.personnel import Personnel, Department
 from ..models.audit import PasteHistory
-from ..utils.decorators import permission_required
+from ..utils.decorators import permission_required, role_required
 from ..utils.helpers import log_audit, parse_date
 from . import personnel_bp
 from .forms import PersonnelForm, PersonnelPasteForm
@@ -13,6 +13,7 @@ from .parser import parse_personnel_text
 
 @personnel_bp.route('/')
 @login_required
+@role_required('admin', 'manager')
 def list_personnel():
     """인원 목록"""
     page = request.args.get('page', 1, type=int)

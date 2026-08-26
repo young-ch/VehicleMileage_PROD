@@ -6,8 +6,8 @@ from wtforms.validators import DataRequired, Optional, Length
 
 class JiraIssueForm(FlaskForm):
     """JIRA 이슈 등록/수정 폼"""
-    jira_key = StringField('JIRA Key', validators=[
-        DataRequired(message='JIRA Key를 입력해주세요.'),
+    jira_key = StringField('JIRA Key (미입력 시 자동 생성)', validators=[
+        Optional(),
         Length(max=30)
     ])
     summary = StringField('제목', validators=[
@@ -41,8 +41,6 @@ class JiraIssueForm(FlaskForm):
     created_date = DateField('생성일', format='%Y-%m-%d', validators=[Optional()])
     resolved_date = DateField('해결일', format='%Y-%m-%d', validators=[Optional()])
     due_date = DateField('마감일', format='%Y-%m-%d', validators=[Optional()])
-    sprint = StringField('스프린트', validators=[Optional(), Length(max=100)])
-    epic = StringField('에픽', validators=[Optional(), Length(max=200)])
     labels = StringField('라벨', validators=[Optional(), Length(max=500)])
     submit = SubmitField('저장')
 

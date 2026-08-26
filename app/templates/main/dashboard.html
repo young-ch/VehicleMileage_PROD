@@ -46,17 +46,16 @@
         <div class="card-header">
             <h3 class="card-title">빠른 작업</h3>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <a href="{{ url_for('personnel.paste') }}" class="btn btn-primary" style="justify-content: center;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            {% if current_user.is_manager %}
+            <a href="{{ url_for('personnel.paste') }}" class="btn btn-primary">
                 📋 인원 붙여넣기
             </a>
-            <a href="{{ url_for('jira.paste') }}" class="btn btn-primary" style="justify-content: center;">
-                📋 JIRA 붙여넣기
-            </a>
-            <a href="{{ url_for('personnel.create') }}" class="btn btn-secondary" style="justify-content: center;">
+            <a href="{{ url_for('personnel.create') }}" class="btn btn-secondary">
                 ➕ 인원 등록
             </a>
-            <a href="{{ url_for('jira.create') }}" class="btn btn-secondary" style="justify-content: center;">
+            {% endif %}
+            <a href="{{ url_for('jira.create') }}" class="btn btn-secondary">
                 ➕ 이슈 등록
             </a>
         </div>

@@ -13,8 +13,8 @@
 
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">JIRA Key *</label>
-                {{ form.jira_key(class="form-control", placeholder="SMU-123") }}
+                <label class="form-label">JIRA Key (미입력 시 자동 생성)</label>
+                {{ form.jira_key(class="form-control", placeholder="예: SMU-123 (비워두면 자동 생성)") }}
                 {% for error in form.jira_key.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
             </div>
             <div class="form-group">
@@ -62,14 +62,6 @@
             <div class="form-group">
                 <label class="form-label">마감일</label>
                 {{ form.due_date(class="form-control", type="date") }}
-            </div>
-            <div class="form-group">
-                <label class="form-label">스프린트</label>
-                {{ form.sprint(class="form-control", placeholder="Sprint 1") }}
-            </div>
-            <div class="form-group">
-                <label class="form-label">에픽</label>
-                {{ form.epic(class="form-control", placeholder="Epic name") }}
             </div>
             <div class="form-group">
                 <label class="form-label">라벨</label>
