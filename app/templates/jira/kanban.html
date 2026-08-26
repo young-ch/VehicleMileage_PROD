@@ -46,21 +46,6 @@
         </div>
     </div>
 
-    <!-- 보류 Column -->
-    <div class="kanban-column hold">
-        <div class="kanban-column-header">
-            <span class="kanban-column-title">
-                <span style="color: var(--danger);">🔴</span> 보류
-            </span>
-            <span class="badge badge-danger" id="count-hold">{{ hold|length }}</span>
-        </div>
-        <div class="kanban-cards-container" data-status="보류">
-            {% for issue in hold %}
-            {{ render_card(issue) }}
-            {% endfor %}
-        </div>
-    </div>
-
     <!-- 완료 Column -->
     <div class="kanban-column done">
         <div class="kanban-column-header">
@@ -71,6 +56,21 @@
         </div>
         <div class="kanban-cards-container" data-status="완료">
             {% for issue in done %}
+            {{ render_card(issue) }}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 보류 Column -->
+    <div class="kanban-column hold">
+        <div class="kanban-column-header">
+            <span class="kanban-column-title">
+                <span style="color: var(--danger);">🔴</span> 보류
+            </span>
+            <span class="badge badge-danger" id="count-hold">{{ hold|length }}</span>
+        </div>
+        <div class="kanban-cards-container" data-status="보류">
+            {% for issue in hold %}
             {{ render_card(issue) }}
             {% endfor %}
         </div>
