@@ -185,9 +185,10 @@ def create():
         flash(f'{issue.jira_key} 이슈가 등록되었습니다.', 'success')
         return redirect(url_for('jira.kanban_board'))
     
-    # 폼 생성 시 생성일(created_date)의 기본값으로 오늘 날짜 설정하여 화면에 보여주기
+    # 폼 생성 시 생성일(created_date)의 기본값으로 오늘 날짜 설정 및 담당자 기본값 설정
     if request.method == 'GET':
         form.created_date.data = date.today()
+        form.assignee_id.data = 0
         
     return render_template('jira/detail.html', form=form, mode='create')
 
@@ -210,12 +211,22 @@ def edit(id):
         for u in User.query.filter_by(is_active=True).all()
     ]
     
+    # DB의 assignee_id가 None이면 폼의 선택하세요(0)로 수동 매핑
+    if request.method == 'GET' and issue.assignee_id is None:
+        form.assignee_id.data = 0
+        
     if form.validate_on_submit():
         old_values = issue.to_dict()
         
+        # 임시 변수에 폼 데이터 백업 후 수동 저장
+        assignee_val = form.assignee_id.data
         form.populate_obj(issue)
-        if form.assignee_id.data == 0:
+        
+        # 0(선택안함)이면 DB에는 None으로 기록
+        if assignee_val == 0 or assignee_val is None:
             issue.assignee_id = None
+        else:
+            issue.assignee_id = assignee_val
         
         # 수정 시에도 에픽/스프린트는 null 유지
         issue.sprint = None
