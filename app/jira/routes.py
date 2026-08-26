@@ -165,7 +165,7 @@ def create():
         db.session.commit()
         
         flash(f'{issue.jira_key} 이슈가 등록되었습니다.', 'success')
-        return redirect(url_for('jira.list_issues'))
+        return redirect(url_for('jira.kanban_board'))
     
     # 폼 생성 시 생성일(created_date)의 기본값으로 오늘 날짜 설정하여 화면에 보여주기
     if request.method == 'GET':
@@ -202,7 +202,7 @@ def edit(id):
         db.session.commit()
         
         flash(f'{issue.jira_key} 이슈가 수정되었습니다.', 'success')
-        return redirect(url_for('jira.list_issues'))
+        return redirect(url_for('jira.kanban_board'))
     
     return render_template('jira/detail.html', form=form, issue=issue, mode='edit')
 
@@ -220,7 +220,7 @@ def delete(id):
     db.session.commit()
     
     flash(f'{issue.jira_key} 이슈가 삭제되었습니다.', 'warning')
-    return redirect(url_for('jira.list_issues'))
+    return redirect(url_for('jira.kanban_board'))
 
 
 @jira_bp.route('/paste', methods=['GET', 'POST'])

@@ -65,7 +65,7 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">최근 등록 이슈</h3>
-            <a href="{{ url_for('jira.list_issues') }}" class="btn btn-sm btn-secondary">전체 보기</a>
+            <a href="{{ url_for('jira.kanban_board') }}" class="btn btn-sm btn-secondary">전체 보기</a>
         </div>
         {% if recent_issues %}
         <div style="display: flex; flex-direction: column; gap: 10px;">
