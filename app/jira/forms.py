@@ -29,12 +29,10 @@ class JiraIssueForm(FlaskForm):
         ('Critical', 'Critical'),
     ])
     status = SelectField('상태', choices=[
-        ('Open', 'Open'),
-        ('In Progress', 'In Progress'),
-        ('Resolved', 'Resolved'),
-        ('Closed', 'Closed'),
-        ('To Do', 'To Do'),
-        ('Done', 'Done'),
+        ('시작전', '시작전'),
+        ('진행', '진행'),
+        ('보류', '보류'),
+        ('완료', '완료'),
     ])
     assignee_id = SelectField('담당자', coerce=int, validators=[Optional()])
     reporter = StringField('보고자', validators=[Optional(), Length(max=100)])

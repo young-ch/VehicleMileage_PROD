@@ -896,3 +896,153 @@ select.form-control {
         display: block;
     }
 }
+
+/* ============================================
+   JIRA 칸반보드 (Kanban Board) 전용 스타일
+   ============================================ */
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: flex-start;
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+.kanban-column {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 500px;
+    transition: var(--transition);
+}
+
+.kanban-column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.kanban-column-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-white);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kanban-column.todo { border-top: 3px solid var(--info); }
+.kanban-column.inprogress { border-top: 3px solid var(--warning); }
+.kanban-column.hold { border-top: 3px solid var(--danger); }
+.kanban-column.done { border-top: 3px solid var(--success); }
+
+.kanban-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-height: 450px;
+}
+
+/* 드래그 오버 시 컬럼 배경 효과 */
+.kanban-cards-container.drag-over {
+    background: rgba(99, 102, 241, 0.05);
+    border: 2px dashed var(--accent-primary);
+    border-radius: var(--radius-md);
+}
+
+.kanban-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    cursor: grab;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.kanban-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-light);
+    box-shadow: var(--shadow-md);
+}
+
+.kanban-card:active {
+    cursor: grabbing;
+}
+
+/* 드래그 중인 카드 투명도 조절 */
+.kanban-card.dragging {
+    opacity: 0.4;
+    border: 2px dashed var(--accent-primary);
+}
+
+.kanban-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.kanban-card-key {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.kanban-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-white);
+    margin-bottom: 12px;
+    word-break: break-all;
+}
+
+.kanban-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+}
+
+.kanban-card-assignee {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.kanban-card-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    color: white;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+    .kanban-board {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .kanban-column {
+        min-height: auto;
+    }
+    .kanban-cards-container {
+        min-height: 150px;
+    }
+}

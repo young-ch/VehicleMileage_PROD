@@ -30,8 +30,38 @@ def generate_jira_key():
 
 @jira_bp.route('/')
 @login_required
+def kanban_board():
+    """JIRA 칸반보드 뷰"""
+    all_issues = JiraIssue.query.order_by(JiraIssue.updated_at.desc()).all()
+    
+    # 상태별 그룹화 (기존 영문 데이터 호환 매핑 포함)
+    todo = []
+    inprogress = []
+    hold = []
+    done = []
+    
+    for issue in all_issues:
+        status = (issue.status or '').strip().lower()
+        if status in ('진행', 'in progress', 'inprogress'):
+            inprogress.append(issue)
+        elif status in ('완료', 'done', 'closed', 'resolved'):
+            done.append(issue)
+        elif status in ('보류', 'hold', 'on hold'):
+            hold.append(issue)
+        else:
+            todo.append(issue)  # Open, To Do 등은 모두 시작전으로 분류
+            
+    return render_template('jira/kanban.html',
+                           todo=todo,
+                           inprogress=inprogress,
+                           hold=hold,
+                           done=done)
+
+
+@jira_bp.route('/list')
+@login_required
 def list_issues():
-    """이슈 목록"""
+    """기존 JIRA 목록 뷰"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     status_filter = request.args.get('status', '')
@@ -66,6 +96,29 @@ def list_issues():
                            status_filter=status_filter,
                            priority_filter=priority_filter,
                            type_filter=type_filter)
+
+
+@jira_bp.route('/update-status', methods=['POST'])
+@login_required
+@permission_required('jira_edit')
+def update_status():
+    """드래그 앤 드롭으로 상태 실시간 업데이트 API"""
+    data = request.get_json()
+    if not data or 'issue_id' not in data or 'status' not in data:
+        return jsonify({'success': False, 'message': '잘못된 매개변수'}), 400
+        
+    issue = JiraIssue.query.get_or_404(data['issue_id'])
+    old_status = issue.status
+    new_status = data['status']
+    
+    if old_status != new_status:
+        issue.status = new_status
+        log_audit('UPDATE', 'jira_issues', issue.id,
+                  old_values={'status': old_status},
+                  new_values={'status': new_status})
+        db.session.commit()
+        
+    return jsonify({'success': True, 'message': f'{issue.jira_key} 상태가 {new_status}(으)로 변경되었습니다.'})
 
 
 @jira_bp.route('/create', methods=['GET', 'POST'])

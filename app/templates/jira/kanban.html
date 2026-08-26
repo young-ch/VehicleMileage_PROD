@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}JIRA 칸반보드 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header page-header-actions">
+    <div>
+        <h2>JIRA 칸반보드</h2>
+        <p>이슈를 마우스로 드래그하여 진행 상태를 변경하세요</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('jira.list_issues') }}" class="btn btn-secondary">📋 목록 뷰 보기</a>
+        {% if current_user.is_manager %}
+        <a href="{{ url_for('jira.create') }}" class="btn btn-primary">➕ 이슈 등록</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="kanban-board">
+    <!-- 시작전 Column -->
+    <div class="kanban-column todo">
+        <div class="kanban-column-header">
+            <span class="kanban-column-title">
+                <span style="color: var(--info);">⚪</span> 시작전
+            </span>
+            <span class="badge badge-info" id="count-todo">{{ todo|length }}</span>
+        </div>
+        <div class="kanban-cards-container" data-status="시작전">
+            {% for issue in todo %}
+            {{ render_card(issue) }}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 진행 Column -->
+    <div class="kanban-column inprogress">
+        <div class="kanban-column-header">
+            <span class="kanban-column-title">
+                <span style="color: var(--warning);">🟡</span> 진행 중
+            </span>
+            <span class="badge badge-warning" id="count-inprogress">{{ inprogress|length }}</span>
+        </div>
+        <div class="kanban-cards-container" data-status="진행">
+            {% for issue in inprogress %}
+            {{ render_card(issue) }}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 보류 Column -->
+    <div class="kanban-column hold">
+        <div class="kanban-column-header">
+            <span class="kanban-column-title">
+                <span style="color: var(--danger);">🔴</span> 보류
+            </span>
+            <span class="badge badge-danger" id="count-hold">{{ hold|length }}</span>
+        </div>
+        <div class="kanban-cards-container" data-status="보류">
+            {% for issue in hold %}
+            {{ render_card(issue) }}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 완료 Column -->
+    <div class="kanban-column done">
+        <div class="kanban-column-header">
+            <span class="kanban-column-title">
+                <span style="color: var(--success);">🟢</span> 완료
+            </span>
+            <span class="badge badge-success" id="count-done">{{ done|length }}</span>
+        </div>
+        <div class="kanban-cards-container" data-status="완료">
+            {% for issue in done %}
+            {{ render_card(issue) }}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% macro render_card(issue) %}
+<div class="kanban-card" draggable="true" data-id="{{ issue.id }}" id="card-{{ issue.id }}">
+    <div class="kanban-card-header">
+        <span class="kanban-card-key">{{ issue.jira_key }}</span>
+        <span class="badge badge-muted" style="font-size: 9px; padding: 2px 6px;">{{ issue.issue_type }}</span>
+    </div>
+    <div class="kanban-card-title">
+        {% if current_user.is_manager %}
+        <a href="{{ url_for('jira.edit', id=issue.id) }}" style="color: var(--text-white);">{{ issue.summary }}</a>
+        {% else %}
+        {{ issue.summary }}
+        {% endif %}
+    </div>
+    <div class="kanban-card-footer">
+        <div class="kanban-card-assignee">
+            <div class="kanban-card-avatar">{{ issue.assignee_name[0] }}</div>
+            <span>{{ issue.assignee_name }}</span>
+        </div>
+        <span style="font-size: 10px; color: var(--text-muted);">{{ issue.created_date.strftime('%m/%d') if issue.created_date }}</span>
+    </div>
+</div>
+{% endmacro %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.kanban-card');
+    const containers = document.querySelectorAll('.kanban-cards-container');
+    
+    cards.forEach(card => {
+        card.addEventListener('dragstart', (e) => {
+            card.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', card.id);
+        });
+        
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+        });
+    });
+    
+    containers.forEach(container => {
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            container.classList.add('drag-over');
+            
+            const draggingCard = document.querySelector('.dragging');
+            const afterElement = getDragAfterElement(container, e.clientY);
+            if (afterElement == null) {
+                container.appendChild(draggingCard);
+            } else {
+                container.insertBefore(draggingCard, afterElement);
+            }
+        });
+        
+        container.addEventListener('dragleave', () => {
+            container.classList.remove('drag-over');
+        });
+        
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            container.classList.remove('drag-over');
+            
+            const cardId = e.dataTransfer.getData('text/plain');
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            
+            const issueId = card.dataset.id;
+            const newStatus = container.dataset.status;
+            
+            updateIssueStatus(issueId, newStatus);
+        });
+    });
+    
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.kanban-card:not(.dragging)')];
+        
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    
+    function updateIssueStatus(issueId, status) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        
+        fetch('{{ url_for("jira.update_status") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ issue_id: issueId, status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                updateCounters();
+            } else {
+                showToast(data.message || '상태 변경에 실패했습니다.', 'danger');
+                setTimeout(() => window.location.reload(), 1000);
+            }
+        })
+        .catch(error => {
+            showToast('네트워크 오류가 발생했습니다.', 'danger');
+            setTimeout(() => window.location.reload(), 1000);
+        });
+    }
+    
+    function updateCounters() {
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const status = column.querySelector('.kanban-cards-container').dataset.status;
+            const count = column.querySelectorAll('.kanban-card').length;
+            
+            if (status === '시작전') document.getElementById('count-todo').textContent = count;
+            if (status === '진행') document.getElementById('count-inprogress').textContent = count;
+            if (status === '보류') document.getElementById('count-hold').textContent = count;
+            if (status === '완료') document.getElementById('count-done').textContent = count;
+        });
+    }
+});
+</script>
+{% endblock %}
