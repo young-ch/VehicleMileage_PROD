@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}인원 관리 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header page-header-actions">
+    <div>
+        <h2>인원 관리</h2>
+        <p>등록된 인원을 조회하고 관리합니다</p>
+    </div>
+    {% if current_user.is_manager %}
+    <div class="btn-group">
+        <a href="{{ url_for('personnel.paste') }}" class="btn btn-primary">📋 텍스트 붙여넣기</a>
+        <a href="{{ url_for('personnel.create') }}" class="btn btn-secondary">➕ 개별 등록</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('personnel.list_personnel') }}" style="display: flex; gap: 12px; flex-wrap: wrap; width: 100%;">
+        <div class="search-input" style="flex: 1; min-width: 200px;">
+            <input type="text" name="search" class="form-control" placeholder="이름, 사번, 이메일로 검색..." value="{{ search }}">
+        </div>
+        <select name="department" class="form-control" style="max-width: 180px;">
+            <option value="">전체 부서</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}" {{ 'selected' if dept_filter == dept.id|string }}>{{ dept.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="status" class="form-control" style="max-width: 140px;">
+            <option value="">전체 상태</option>
+            <option value="active" {{ 'selected' if status_filter == 'active' }}>재직</option>
+            <option value="inactive" {{ 'selected' if status_filter == 'inactive' }}>퇴직</option>
+            <option value="leave" {{ 'selected' if status_filter == 'leave' }}>휴직</option>
+        </select>
+        <button type="submit" class="btn btn-secondary">검색</button>
+    </form>
+</div>
+
+<!-- Personnel Table -->
+{% if personnel %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>사번</th>
+                <th>이름</th>
+                <th>부서</th>
+                <th>직급</th>
+                <th>직위</th>
+                <th>이메일</th>
+                <th>상태</th>
+                <th>입사일</th>
+                {% if current_user.is_manager %}
+                <th>작업</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for person in personnel %}
+            <tr>
+                <td style="font-weight: 600; color: var(--accent-primary);">{{ person.employee_id }}</td>
+                <td style="font-weight: 500;">{{ person.name }}</td>
+                <td>{{ person.department_name }}</td>
+                <td>{{ person.rank or '-' }}</td>
+                <td>{{ person.position or '-' }}</td>
+                <td style="color: var(--text-secondary);">{{ person.email or '-' }}</td>
+                <td>
+                    <span class="badge {% if person.status == 'active' %}badge-success{% elif person.status == 'leave' %}badge-warning{% else %}badge-danger{% endif %}">
+                        {% if person.status == 'active' %}재직{% elif person.status == 'leave' %}휴직{% else %}퇴직{% endif %}
+                    </span>
+                </td>
+                <td style="color: var(--text-muted); font-size: 12px;">{{ person.join_date or '-' }}</td>
+                {% if current_user.is_manager %}
+                <td>
+                    <div class="btn-group">
+                        <a href="{{ url_for('personnel.edit', id=person.id) }}" class="btn btn-sm btn-secondary">수정</a>
+                        <form method="POST" action="{{ url_for('personnel.delete', id=person.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirmAction('정말 비활성 처리하시겠습니까?')">삭제</button>
+                        </form>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div class="pagination">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('personnel.list_personnel', page=pagination.prev_num, search=search, department=dept_filter, status=status_filter) }}">← 이전</a>
+    {% else %}
+    <span class="disabled">← 이전</span>
+    {% endif %}
+
+    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+            {% if page_num == pagination.page %}
+            <span class="active">{{ page_num }}</span>
+            {% else %}
+            <a href="{{ url_for('personnel.list_personnel', page=page_num, search=search, department=dept_filter, status=status_filter) }}">{{ page_num }}</a>
+            {% endif %}
+        {% else %}
+        <span>...</span>
+        {% endif %}
+    {% endfor %}
+
+    {% if pagination.has_next %}
+    <a href="{{ url_for('personnel.list_personnel', page=pagination.next_num, search=search, department=dept_filter, status=status_filter) }}">다음 →</a>
+    {% else %}
+    <span class="disabled">다음 →</span>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="icon">👥</div>
+    <h3>등록된 인원이 없습니다</h3>
+    <p>인원을 등록하거나 텍스트를 붙여넣어 일괄 등록해보세요</p>
+    {% if current_user.is_manager %}
+    <a href="{{ url_for('personnel.paste') }}" class="btn btn-primary mt-2">📋 텍스트 붙여넣기</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

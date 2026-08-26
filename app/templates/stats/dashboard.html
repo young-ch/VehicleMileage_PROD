@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}통계 - SMU JIRA{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📊 통계 대시보드</h2>
+    <p>인원 및 JIRA 이슈 현황을 차트로 확인합니다</p>
+</div>
+
+<!-- Personnel Charts -->
+<h3 style="font-size: 16px; color: var(--text-white); margin-bottom: 16px;">👥 인원 통계</h3>
+<div class="charts-grid mb-3">
+    <div class="chart-card">
+        <h4 class="card-title mb-2">부서별 인원</h4>
+        <canvas id="chart-dept"></canvas>
+    </div>
+    <div class="chart-card">
+        <h4 class="card-title mb-2">상태별 인원</h4>
+        <canvas id="chart-status"></canvas>
+    </div>
+</div>
+
+<!-- JIRA Charts -->
+<h3 style="font-size: 16px; color: var(--text-white); margin-bottom: 16px;">🎫 JIRA 이슈 통계</h3>
+<div class="charts-grid mb-3">
+    <div class="chart-card">
+        <h4 class="card-title mb-2">상태별 이슈</h4>
+        <canvas id="chart-jira-status"></canvas>
+    </div>
+    <div class="chart-card">
+        <h4 class="card-title mb-2">우선순위별 이슈</h4>
+        <canvas id="chart-jira-priority"></canvas>
+    </div>
+</div>
+<div class="charts-grid">
+    <div class="chart-card">
+        <h4 class="card-title mb-2">담당자별 이슈 (상위 10명)</h4>
+        <canvas id="chart-jira-assignee"></canvas>
+    </div>
+    <div class="chart-card">
+        <h4 class="card-title mb-2">월별 이슈 생성 추이</h4>
+        <canvas id="chart-jira-monthly"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CHART_COLORS = [
+    '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b',
+    '#22c55e', '#14b8a6', '#3b82f6', '#a855f7', '#ef4444',
+    '#06b6d4', '#84cc16'
+];
+
+const chartDefaults = {
+    responsive: true,
+    plugins: {
+        legend: {
+            labels: { color: '#8b8fa3', font: { family: 'Inter', size: 12 } }
+        }
+    }
+};
+
+// Load personnel stats
+fetch('{{ url_for("stats.personnel_stats") }}')
+    .then(r => r.json())
+    .then(data => {
+        // Department chart
+        new Chart(document.getElementById('chart-dept'), {
+            type: 'doughnut',
+            data: {
+                labels: data.department.labels,
+                datasets: [{
+                    data: data.department.data,
+                    backgroundColor: CHART_COLORS,
+                    borderWidth: 0,
+                }]
+            },
+            options: { ...chartDefaults, cutout: '60%' }
+        });
+        
+        // Status chart
+        new Chart(document.getElementById('chart-status'), {
+            type: 'pie',
+            data: {
+                labels: data.status.labels,
+                datasets: [{
+                    data: data.status.data,
+                    backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
+                    borderWidth: 0,
+                }]
+            },
+            options: chartDefaults
+        });
+    });
+
+// Load JIRA stats
+fetch('{{ url_for("stats.jira_stats") }}')
+    .then(r => r.json())
+    .then(data => {
+        // Status chart
+        new Chart(document.getElementById('chart-jira-status'), {
+            type: 'doughnut',
+            data: {
+                labels: data.status.labels,
+                datasets: [{
+                    data: data.status.data,
+                    backgroundColor: CHART_COLORS,
+                    borderWidth: 0,
+                }]
+            },
+            options: { ...chartDefaults, cutout: '60%' }
+        });
+        
+        // Priority chart
+        new Chart(document.getElementById('chart-jira-priority'), {
+            type: 'bar',
+            data: {
+                labels: data.priority.labels,
+                datasets: [{
+                    label: '이슈 수',
+                    data: data.priority.data,
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#8b8fa3'],
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    x: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2e42' } },
+                    y: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2e42' } }
+                }
+            }
+        });
+        
+        // Assignee chart
+        new Chart(document.getElementById('chart-jira-assignee'), {
+            type: 'bar',
+            data: {
+                labels: data.assignee.labels,
+                datasets: [{
+                    label: '담당 이슈 수',
+                    data: data.assignee.data,
+                    backgroundColor: '#6366f1',
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                indexAxis: 'y',
+                scales: {
+                    x: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2e42' } },
+                    y: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2e42' } }
+                }
+            }
+        });
+        
+        // Monthly trend chart
+        new Chart(document.getElementById('chart-jira-monthly'), {
+            type: 'line',
+            data: {
+                labels: data.monthly.labels,
+                datasets: [{
+                    label: '이슈 생성 수',
+                    data: data.monthly.data,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    x: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2e42' } },
+                    y: { ticks: { color: '#8b8fa3' }, grid: { color: '#2a2e42' } }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

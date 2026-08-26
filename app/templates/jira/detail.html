@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}이슈 {{ '등록' if mode == 'create' else '수정' }} - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>이슈 {{ '등록' if mode == 'create' else '수정' }}</h2>
+    <p>{{ '새 JIRA 이슈를 등록합니다' if mode == 'create' else issue.jira_key + ' 이슈를 수정합니다' }}</p>
+</div>
+
+<div class="card" style="max-width: 900px;">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">JIRA Key *</label>
+                {{ form.jira_key(class="form-control", placeholder="SMU-123") }}
+                {% for error in form.jira_key.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">유형</label>
+                {{ form.issue_type(class="form-control") }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">제목 *</label>
+            {{ form.summary(class="form-control", placeholder="이슈 제목을 입력하세요") }}
+            {% for error in form.summary.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">설명</label>
+            {{ form.description(class="form-control", placeholder="이슈 설명을 입력하세요", rows="4") }}
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">우선순위</label>
+                {{ form.priority(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">상태</label>
+                {{ form.status(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">담당자</label>
+                {{ form.assignee_id(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">보고자</label>
+                {{ form.reporter(class="form-control", placeholder="보고자 이름") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">생성일</label>
+                {{ form.created_date(class="form-control", type="date") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">해결일</label>
+                {{ form.resolved_date(class="form-control", type="date") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">마감일</label>
+                {{ form.due_date(class="form-control", type="date") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">스프린트</label>
+                {{ form.sprint(class="form-control", placeholder="Sprint 1") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">에픽</label>
+                {{ form.epic(class="form-control", placeholder="Epic name") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">라벨</label>
+                {{ form.labels(class="form-control", placeholder="쉼표로 구분") }}
+            </div>
+        </div>
+
+        <div class="btn-group mt-2">
+            <button type="submit" class="btn btn-primary">💾 저장</button>
+            <a href="{{ url_for('jira.list_issues') }}" class="btn btn-secondary">취소</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

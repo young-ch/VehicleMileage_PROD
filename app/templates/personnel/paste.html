@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}인원 일괄 등록 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📋 인원 텍스트 붙여넣기</h2>
+    <p>엑셀에서 복사한 인원 데이터를 붙여넣으면 자동으로 파싱합니다</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">데이터 입력</h3>
+        <div style="font-size: 12px; color: var(--text-muted);">
+            지원 형식: 탭 구분(TSV), 쉼표 구분(CSV), 파이프(|) 구분
+        </div>
+    </div>
+
+    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
+        <strong style="color: var(--text-primary);">📌 사용법:</strong> 엑셀에서 데이터를 복사(Ctrl+C)한 후 아래 텍스트 영역에 붙여넣기(Ctrl+V)하세요.<br>
+        <strong>컬럼 순서:</strong> 사번 | 이름 | 부서 | 직급 | 직위 | 이메일 | 전화번호 | 입사일 (헤더 포함 시 자동 인식)
+    </div>
+
+    <form method="POST" action="{{ url_for('personnel.paste') }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group paste-area">
+            {{ form.paste_data(class="form-control", placeholder="여기에 데이터를 붙여넣으세요...\n\n예시:\n사번\t이름\t부서\t직급\t직위\t이메일\nEMP-001\t홍길동\t개발팀\t과장\t팀장\thong@smu.ac.kr\nEMP-002\t김철수\t기획팀\t대리\t\tkim@smu.ac.kr", rows="10") }}
+            <div class="paste-hint">Ctrl+V로 붙여넣기</div>
+        </div>
+        {% for error in form.paste_data.errors %}
+        <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">🔍 파싱 및 미리보기</button>
+    </form>
+</div>
+
+{% if result %}
+<!-- Parse Result Preview -->
+<div class="preview-container">
+    <div class="card">
+        <div class="preview-header">
+            <h3 class="card-title">파싱 결과 미리보기</h3>
+            <div class="preview-stats">
+                <span class="count-success">✅ 성공: {{ result.data|length }}건</span>
+                <span class="count-error">❌ 오류: {{ result.errors|length }}건</span>
+                <span style="color: var(--text-muted);">구분자: {{ '탭' if result.delimiter == '\t' else ('쉼표' if result.delimiter == ',' else result.delimiter) }}</span>
+            </div>
+        </div>
+
+        {% if result.errors %}
+        <div class="mb-2">
+            {% for error in result.errors %}
+            <div class="alert alert-danger" style="padding: 8px 14px; font-size: 12px;">
+                ⚠️ {{ error.line }}행: {{ error.message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if result.data %}
+        <div class="table-container">
+            <table id="preview-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        {% for col in result.columns %}
+                        <th data-field="{{ col }}">{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in result.data %}
+                    <tr>
+                        <td style="color: var(--text-muted);">{{ loop.index }}</td>
+                        {% for col in result.columns %}
+                        <td>
+                            <input type="text" class="form-control" value="{{ row.get(col, '') or '' }}" 
+                                   style="padding: 4px 8px; font-size: 12px; min-width: 80px; background: transparent; border-color: transparent;">
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div id="save-errors" class="mt-2"></div>
+
+        <div class="btn-group mt-2">
+            <button onclick="saveParsedData('{{ url_for('personnel.paste_save') }}', getPreviewData())" 
+                    class="btn btn-success">💾 DB에 저장 ({{ result.data|length }}건)</button>
+            <a href="{{ url_for('personnel.paste') }}" class="btn btn-secondary">다시 입력</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}회원가입 - SMU JIRA{% endblock %}
+
+{% block auth_content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="brand">
+            <div class="brand-icon">📋</div>
+            <h2>회원가입</h2>
+            <p>새 계정을 만들어 시작하세요</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}">
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                <label class="form-label" for="username">사용자명</label>
+                {{ form.username(class="form-control", id="username", placeholder="3자 이상 입력", autocomplete="username") }}
+                {% for error in form.username.errors %}
+                <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">이메일</label>
+                {{ form.email(class="form-control", id="email", placeholder="example@smu.ac.kr", autocomplete="email") }}
+                {% for error in form.email.errors %}
+                <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">비밀번호</label>
+                {{ form.password(class="form-control", id="password", placeholder="영문 + 숫자 + 특수문자 포함 8자 이상", autocomplete="new-password") }}
+                {% for error in form.password.errors %}
+                <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password_confirm">비밀번호 확인</label>
+                {{ form.password_confirm(class="form-control", id="password_confirm", placeholder="비밀번호를 다시 입력하세요", autocomplete="new-password") }}
+                {% for error in form.password_confirm.errors %}
+                <div class="form-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">회원가입</button>
+
+            <div class="auth-footer">
+                이미 계정이 있으신가요? <a href="{{ url_for('auth.login') }}">로그인</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

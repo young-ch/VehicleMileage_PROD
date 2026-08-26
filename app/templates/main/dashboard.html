@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}대시보드 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>대시보드</h2>
+    <p>SMU JIRA 관리 시스템 현황을 한눈에 확인하세요</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card accent">
+        <div class="stat-icon accent">👥</div>
+        <div>
+            <div class="stat-value">{{ stats.total_personnel }}</div>
+            <div class="stat-label">재직 인원</div>
+        </div>
+    </div>
+    <div class="stat-card info">
+        <div class="stat-icon info">🎫</div>
+        <div>
+            <div class="stat-value">{{ stats.total_issues }}</div>
+            <div class="stat-label">전체 이슈</div>
+        </div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-icon warning">🔄</div>
+        <div>
+            <div class="stat-value">{{ stats.open_issues }}</div>
+            <div class="stat-label">진행 중 이슈</div>
+        </div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-icon success">✅</div>
+        <div>
+            <div class="stat-value">{{ stats.resolved_issues }}</div>
+            <div class="stat-label">해결된 이슈</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions + Recent Issues -->
+<div class="charts-grid">
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">빠른 작업</h3>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <a href="{{ url_for('personnel.paste') }}" class="btn btn-primary" style="justify-content: center;">
+                📋 인원 붙여넣기
+            </a>
+            <a href="{{ url_for('jira.paste') }}" class="btn btn-primary" style="justify-content: center;">
+                📋 JIRA 붙여넣기
+            </a>
+            <a href="{{ url_for('personnel.create') }}" class="btn btn-secondary" style="justify-content: center;">
+                ➕ 인원 등록
+            </a>
+            <a href="{{ url_for('jira.create') }}" class="btn btn-secondary" style="justify-content: center;">
+                ➕ 이슈 등록
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Issues -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">최근 등록 이슈</h3>
+            <a href="{{ url_for('jira.list_issues') }}" class="btn btn-sm btn-secondary">전체 보기</a>
+        </div>
+        {% if recent_issues %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for issue in recent_issues %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
+                <div>
+                    <span style="color: var(--accent-primary); font-weight: 600; font-size: 12px;">{{ issue.jira_key }}</span>
+                    <span style="margin-left: 8px; font-size: 13px;">{{ issue.summary[:50] }}{% if issue.summary|length > 50 %}...{% endif %}</span>
+                </div>
+                <span class="badge {% if issue.status in ['Open', 'To Do'] %}badge-info{% elif issue.status == 'In Progress' %}badge-warning{% elif issue.status in ['Resolved', 'Done', 'Closed'] %}badge-success{% else %}badge-muted{% endif %}">
+                    {{ issue.status }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="icon">🎫</div>
+            <h3>등록된 이슈가 없습니다</h3>
+            <p>JIRA 이슈를 등록해보세요</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card mt-3">
+    <div class="card-header">
+        <h3 class="card-title">최근 활동</h3>
+    </div>
+    {% if recent_logs %}
+    <div class="table-container" style="border: none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>작업</th>
+                    <th>대상</th>
+                    <th>사용자</th>
+                    <th>시간</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td>
+                        <span class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td>{{ log.target_table }} #{{ log.target_id }}</td>
+                    <td>{{ log.user.username if log.user else '-' }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">{{ log.created_at.strftime('%m/%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="icon">📜</div>
+        <h3>활동 기록이 없습니다</h3>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

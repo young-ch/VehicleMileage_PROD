@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}인원 {{ '등록' if mode == 'create' else '수정' }} - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>인원 {{ '등록' if mode == 'create' else '수정' }}</h2>
+    <p>{{ '새 인원을 등록합니다' if mode == 'create' else person.name + '님의 정보를 수정합니다' }}</p>
+</div>
+
+<div class="card" style="max-width: 800px;">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">사번 *</label>
+                {{ form.employee_id(class="form-control", placeholder="EMP-001") }}
+                {% for error in form.employee_id.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">이름 *</label>
+                {{ form.name(class="form-control", placeholder="홍길동") }}
+                {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">부서</label>
+                {{ form.department_id(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">직급</label>
+                {{ form.rank(class="form-control", placeholder="과장") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">직위</label>
+                {{ form.position(class="form-control", placeholder="팀장") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">이메일</label>
+                {{ form.email(class="form-control", placeholder="email@smu.ac.kr") }}
+                {% for error in form.email.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">전화번호</label>
+                {{ form.phone(class="form-control", placeholder="010-1234-5678") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">상태</label>
+                {{ form.status(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">입사일</label>
+                {{ form.join_date(class="form-control", type="date") }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">퇴사일</label>
+                {{ form.leave_date(class="form-control", type="date") }}
+            </div>
+        </div>
+
+        <div class="btn-group mt-2">
+            <button type="submit" class="btn btn-primary">💾 저장</button>
+            <a href="{{ url_for('personnel.list_personnel') }}" class="btn btn-secondary">취소</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

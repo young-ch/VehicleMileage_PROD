@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}감사 로그 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📜 감사 로그</h2>
+    <p>시스템의 모든 데이터 변경 이력을 추적합니다</p>
+</div>
+
+<div class="filter-bar">
+    <form method="GET" action="{{ url_for('admin.audit_logs') }}" style="display: flex; gap: 12px;">
+        <select name="action" class="form-control" style="max-width: 160px;">
+            <option value="">전체 작업</option>
+            <option value="CREATE" {{ 'selected' if action_filter == 'CREATE' }}>CREATE</option>
+            <option value="UPDATE" {{ 'selected' if action_filter == 'UPDATE' }}>UPDATE</option>
+            <option value="DELETE" {{ 'selected' if action_filter == 'DELETE' }}>DELETE</option>
+        </select>
+        <button type="submit" class="btn btn-secondary">필터</button>
+    </form>
+</div>
+
+{% if logs.items %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>시간</th>
+                <th>사용자</th>
+                <th>작업</th>
+                <th>대상</th>
+                <th>IP</th>
+                <th>상세</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs.items %}
+            <tr>
+                <td style="color: var(--text-muted); font-size: 12px; white-space: nowrap;">
+                    {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
+                <td>{{ log.user.username if log.user else '-' }}</td>
+                <td>
+                    <span class="badge {% if log.action == 'CREATE' %}badge-success{% elif log.action == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}">
+                        {{ log.action }}
+                    </span>
+                </td>
+                <td>{{ log.target_table }} #{{ log.target_id }}</td>
+                <td style="color: var(--text-muted); font-size: 12px;">{{ log.ip_address or '-' }}</td>
+                <td style="font-size: 11px; color: var(--text-secondary); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {% if log.new_values %}
+                    {{ log.new_values | tojson | truncate(80) }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if logs.pages > 1 %}
+<div class="pagination">
+    {% if logs.has_prev %}
+    <a href="{{ url_for('admin.audit_logs', page=logs.prev_num, action=action_filter) }}">← 이전</a>
+    {% endif %}
+    {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+        <a href="{{ url_for('admin.audit_logs', page=page_num, action=action_filter) }}" class="{{ 'active' if page_num == logs.page }}">{{ page_num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if logs.has_next %}
+    <a href="{{ url_for('admin.audit_logs', page=logs.next_num, action=action_filter) }}">다음 →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <div class="icon">📜</div>
+    <h3>감사 로그가 없습니다</h3>
+</div>
+{% endif %}
+{% endblock %}

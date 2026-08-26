@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}사용자 관리 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>⚙️ 사용자 관리</h2>
+    <p>시스템 사용자 목록을 관리하고 역할을 변경합니다</p>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>사용자명</th>
+                <th>이메일</th>
+                <th>역할</th>
+                <th>상태</th>
+                <th>가입일</th>
+                <th>최근 로그인</th>
+                <th>작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users.items %}
+            <tr>
+                <td style="font-weight: 600;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="user-avatar" style="width: 32px; height: 32px; font-size: 12px;">{{ user.username[0]|upper }}</div>
+                        {{ user.username }}
+                    </div>
+                </td>
+                <td style="color: var(--text-secondary);">{{ user.email }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.change_role', id=user.id) }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select name="role_id" class="form-control" style="max-width: 130px; padding: 4px 8px; font-size: 12px;" onchange="this.form.submit()">
+                            {% for role in roles %}
+                            <option value="{{ role.id }}" {{ 'selected' if user.role_id == role.id }}>{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                <td>
+                    <span class="badge {{ 'badge-success' if user.is_active else 'badge-danger' }}">
+                        {{ '활성' if user.is_active else '비활성' }}
+                    </span>
+                </td>
+                <td style="color: var(--text-muted); font-size: 12px;">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at }}</td>
+                <td style="color: var(--text-muted); font-size: 12px;">{{ user.last_login.strftime('%m/%d %H:%M') if user.last_login else '없음' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.toggle_active', id=user.id) }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm {{ 'btn-danger' if user.is_active else 'btn-success' }}"
+                                onclick="return confirmAction('{{ user.username }} 계정을 {{ '비활성화' if user.is_active else '활성화' }}하시겠습니까?')">
+                            {{ '비활성화' if user.is_active else '활성화' }}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if users.pages > 1 %}
+<div class="pagination">
+    {% if users.has_prev %}
+    <a href="{{ url_for('admin.users', page=users.prev_num) }}">← 이전</a>
+    {% endif %}
+    {% for page_num in users.iter_pages() %}
+        {% if page_num %}
+        <a href="{{ url_for('admin.users', page=page_num) }}" class="{{ 'active' if page_num == users.page }}">{{ page_num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if users.has_next %}
+    <a href="{{ url_for('admin.users', page=users.next_num) }}">다음 →</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

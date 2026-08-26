@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SMU JIRA 관리 시스템 - 인원 관리 및 이슈 추적">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}SMU JIRA 관리 시스템{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- App Layout with Sidebar -->
+    <div class="app-layout">
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" aria-label="메뉴 열기">☰</button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">📋</div>
+                <div>
+                    <h1>SMU JIRA</h1>
+                    <span>Management System</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">메인</div>
+                    <a href="{{ url_for('main.dashboard') }}" 
+                       class="nav-item {{ 'active' if request.endpoint == 'main.dashboard' }}">
+                        <span class="nav-icon">🏠</span> 대시보드
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">관리</div>
+                    <a href="{{ url_for('personnel.list_personnel') }}" 
+                       class="nav-item {{ 'active' if request.blueprint == 'personnel' }}">
+                        <span class="nav-icon">👥</span> 인원 관리
+                    </a>
+                    <a href="{{ url_for('jira.list_issues') }}" 
+                       class="nav-item {{ 'active' if request.blueprint == 'jira' }}">
+                        <span class="nav-icon">🎫</span> JIRA 이슈
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">분석</div>
+                    <a href="{{ url_for('stats.dashboard') }}" 
+                       class="nav-item {{ 'active' if request.blueprint == 'stats' }}">
+                        <span class="nav-icon">📊</span> 통계
+                    </a>
+                </div>
+
+                {% if current_user.is_admin %}
+                <div class="nav-section">
+                    <div class="nav-section-title">시스템</div>
+                    <a href="{{ url_for('admin.users') }}" 
+                       class="nav-item {{ 'active' if request.endpoint == 'admin.users' }}">
+                        <span class="nav-icon">⚙️</span> 사용자 관리
+                    </a>
+                    <a href="{{ url_for('admin.audit_logs') }}" 
+                       class="nav-item {{ 'active' if request.endpoint == 'admin.audit_logs' }}">
+                        <span class="nav-icon">📜</span> 감사 로그
+                    </a>
+                </div>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+                    <div class="user-details">
+                        <div class="user-name">{{ current_user.username }}</div>
+                        <div class="user-role">{{ current_user.role.name if current_user.role }}</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="nav-item mt-1" style="color: var(--danger);">
+                    <span class="nav-icon">🚪</span> 로그아웃
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+    <!-- Auth Pages (no sidebar) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999; width: 90%; max-width: 440px;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% block auth_content %}{% endblock %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

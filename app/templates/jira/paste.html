@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}JIRA 일괄 등록 - SMU JIRA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📋 JIRA 이슈 텍스트 붙여넣기</h2>
+    <p>엑셀에서 복사한 JIRA 이슈 데이터를 붙여넣으면 자동으로 파싱합니다</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">데이터 입력</h3>
+        <div style="font-size: 12px; color: var(--text-muted);">
+            지원 형식: 탭 구분(TSV), 쉼표 구분(CSV), 파이프(|) 구분
+        </div>
+    </div>
+
+    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
+        <strong style="color: var(--text-primary);">📌 사용법:</strong> JIRA 이슈 목록을 엑셀에서 복사(Ctrl+C)한 후 아래에 붙여넣기(Ctrl+V)하세요.<br>
+        <strong>컬럼 순서:</strong> Key | 제목 | 유형 | 우선순위 | 상태 | 담당자 | 보고자 | 생성일 | 스프린트 (헤더 포함 시 자동 인식)
+    </div>
+
+    <form method="POST" action="{{ url_for('jira.paste') }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group paste-area">
+            {{ form.paste_data(class="form-control", placeholder="여기에 데이터를 붙여넣으세요...\n\n예시:\nKey\t제목\t유형\t우선순위\t상태\t담당자\nSMU-001\t로그인 버그 수정\tBug\tHigh\tOpen\t홍길동\nSMU-002\t회원가입 기능\tStory\tMedium\tIn Progress\t김철수", rows="10") }}
+            <div class="paste-hint">Ctrl+V로 붙여넣기</div>
+        </div>
+        {% for error in form.paste_data.errors %}
+        <div class="form-error">{{ error }}</div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">🔍 파싱 및 미리보기</button>
+    </form>
+</div>
+
+{% if result %}
+<div class="preview-container">
+    <div class="card">
+        <div class="preview-header">
+            <h3 class="card-title">파싱 결과 미리보기</h3>
+            <div class="preview-stats">
+                <span class="count-success">✅ 성공: {{ result.data|length }}건</span>
+                <span class="count-error">❌ 오류: {{ result.errors|length }}건</span>
+            </div>
+        </div>
+
+        {% if result.errors %}
+        <div class="mb-2">
+            {% for error in result.errors %}
+            <div class="alert alert-danger" style="padding: 8px 14px; font-size: 12px;">
+                ⚠️ {{ error.line }}행: {{ error.message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if result.data %}
+        <div class="table-container">
+            <table id="preview-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        {% for col in result.columns %}
+                        <th data-field="{{ col }}">{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in result.data %}
+                    <tr>
+                        <td style="color: var(--text-muted);">{{ loop.index }}</td>
+                        {% for col in result.columns %}
+                        <td>
+                            <input type="text" class="form-control" value="{{ row.get(col, '') or '' }}"
+                                   style="padding: 4px 8px; font-size: 12px; min-width: 80px; background: transparent; border-color: transparent;">
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div id="save-errors" class="mt-2"></div>
+
+        <div class="btn-group mt-2">
+            <button onclick="saveParsedData('{{ url_for('jira.paste_save') }}', getPreviewData())"
+                    class="btn btn-success">💾 DB에 저장 ({{ result.data|length }}건)</button>
+            <a href="{{ url_for('jira.paste') }}" class="btn btn-secondary">다시 입력</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
