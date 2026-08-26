@@ -9,6 +9,7 @@
     </div>
     {% if current_user.is_manager %}
     <div class="btn-group">
+        <a href="{{ url_for('personnel.export_csv', search=search, department=dept_filter, status=status_filter) }}" class="btn btn-secondary">📥 엑셀 다운로드</a>
         <a href="{{ url_for('personnel.retire') }}" class="btn btn-danger">🚪 퇴사 처리</a>
         <a href="{{ url_for('personnel.create') }}" class="btn btn-primary">➕ 신입 등록</a>
     </div>
@@ -131,16 +132,9 @@
                     <div class="btn-group">
                         <a href="{{ url_for('personnel.edit', id=person.id) }}" class="btn btn-sm btn-secondary">수정</a>
                         
-                        {% if person.status == 'active' %}
-                        <form method="POST" action="{{ url_for('personnel.retire_individual', id=person.id) }}" style="display: inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirmAction('정말 퇴사 처리하시겠습니까? (이력에 남김)')">퇴사</button>
-                        </form>
-                        {% endif %}
-                        
                         <form method="POST" action="{{ url_for('personnel.delete', id=person.id) }}" style="display: inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirmAction('정말 데이터를 영구 삭제하시겠습니까? (실수 등록 취소용, 이력 제외)')">삭제</button>
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirmAction('정말 데이터를 영구 삭제하시겠습니까? (실수 등록 취소용)')">삭제</button>
                         </form>
                     </div>
                 </td>

@@ -46,7 +46,8 @@ def list_personnel():
     start_of_month = date(today.year, today.month, 1)
     
     new_hires_count = Personnel.query.filter(
-        Personnel.join_date >= start_of_month
+        Personnel.join_date >= start_of_month,
+        Personnel.status == 'active'
     ).count()
     
     retires_count = Personnel.query.filter(
@@ -239,3 +240,57 @@ def delete(id):
     
     flash(f'{person.name}님의 데이터가 완전히 삭제되었습니다. (실적 이력에서 제외됨)', 'warning')
     return redirect(url_for('personnel.list_personnel'))
+
+
+@personnel_bp.route('/export')
+@login_required
+@role_required('admin', 'manager')
+def export_csv():
+    """인원 목록을 엑셀(CSV)로 내보내기 (검색 및 필터 연동)"""
+    import io
+    import csv
+    
+    search = request.args.get('search', '')
+    dept_filter = request.args.get('department', '', type=str)
+    status_filter = request.args.get('status', '')
+    
+    query = Personnel.query
+    if search:
+        query = query.filter(
+            db.or_(
+                Personnel.name.contains(search),
+                Personnel.employee_id.contains(search),
+            )
+        )
+    if dept_filter:
+        query = query.filter(Personnel.department_id == int(dept_filter))
+    if status_filter:
+        query = query.filter(Personnel.status == status_filter)
+        
+    personnel_list = query.order_by(Personnel.status.asc(), Personnel.name.asc()).all()
+    
+    # 메모리 버퍼 생성 및 한글 깨짐 방지용 BOM(UTF-8-SIG) 헤더 작성
+    output = io.StringIO()
+    output.write('\ufeff')
+    
+    writer = csv.writer(output)
+    # 엑셀 첫 행 헤더 작성
+    writer.writerow(['사용 아이디', '성명', '지역 / 부서', '직위', '상태', '입사일자', '퇴사일자'])
+    
+    for p in personnel_list:
+        status_text = '재직' if p.status == 'active' else '퇴직'
+        writer.writerow([
+            p.employee_id,
+            p.name,
+            p.department_name,
+            p.position or '',
+            status_text,
+            p.join_date.strftime('%Y-%m-%d') if p.join_date else '',
+            p.leave_date.strftime('%Y-%m-%d') if p.leave_date else ''
+        ])
+        
+    from flask import Response
+    response = Response(output.getvalue(), mimetype='text/csv')
+    filename = f"smu_personnel_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return response
