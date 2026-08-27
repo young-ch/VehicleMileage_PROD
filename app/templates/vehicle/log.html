@@ -136,16 +136,76 @@
         <p>차량별 운행 기록을 일지 형태로 작성하고 누적 주행거리를 관리합니다</p>
     </div>
     <div class="btn-group">
-        <a href="{{ url_for('vehicle.export_excel', vehicle_id=current_vehicle.id) }}" class="btn btn-secondary" style="background:#1e293b; border-color:#334155; color:#38bdf8;">
+        <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()" style="background:#1e293b; border-color:#334155; color:#38bdf8;">
             📥 엑셀 출력 (.csv)
-        </a>
+        </button>
         {% if current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
+        <button type="button" class="btn btn-primary" onclick="toggleAddVehicleModal()">
+            ➕ 차량 신규 등록 (새 탭 추가)
+        </button>
         <button type="button" class="btn btn-warning" onclick="toggleAdminEditModal()">
-            ✏️ 차량 정보 수정 (관리자 전용)
+            ✏️ 차량 정보 수정
         </button>
         {% endif %}
     </div>
 </div>
+
+<!-- 엑셀 출력 날짜 범위 지정 모달 (기본 숨김) -->
+<div id="excel-export-panel" class="card mb-3" style="display: none; border: 2px solid #38bdf8;">
+    <div class="card-header" style="background: #1e293b; color: #38bdf8;">
+        <h3 class="card-title">📥 [{{ current_vehicle.name }}] 엑셀 출력 날짜 범위 지정</h3>
+    </div>
+    <form method="GET" action="{{ url_for('vehicle.export_excel', vehicle_id=current_vehicle.id) }}" style="padding: 16px;">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">시작일자 (Start Date)</label>
+                <input type="date" name="start_date" id="export_start_date" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">종료일자 (End Date)</label>
+                <input type="date" name="end_date" id="export_end_date" class="form-control">
+            </div>
+        </div>
+        <div class="btn-group mt-2">
+            <button type="submit" class="btn btn-primary" style="background: #0284c7;">📥 해당 기간 엑셀 보고서 다운로드</button>
+            <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()">취소</button>
+        </div>
+    </form>
+</div>
+
+<!-- 차량관리자/관리자 전용 차량 신규 등록 폼 패널 (요청사항 4: 차량 증가 시 신규 탭 생성) -->
+{% if current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
+<div id="add-vehicle-panel" class="card mb-3" style="display: none; border: 2px solid var(--accent-primary);">
+    <div class="card-header" style="background: #1e293b; color: #f8fafc;">
+        <h3 class="card-title">➕ 신규 법인차량 등록 (새로운 탭 추가)</h3>
+    </div>
+    <form method="POST" action="{{ url_for('vehicle.add_vehicle') }}" style="padding: 16px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">차종 명칭 *</label>
+                <input type="text" name="name" class="form-control" placeholder="예: 아반떼, 그랜저, 아이오닉5" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">차량 번호 *</label>
+                <input type="text" name="plate_number" class="form-control" placeholder="예: 345더1234" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">유종</label>
+                <input type="text" name="fuel_type" class="form-control" value="경유" placeholder="예: 경유, 휘발유, 전기">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">상단 주의사항 문구</label>
+                <input type="text" name="notice" class="form-control" value="사용후 반드시 지정 주차구역 주차!" placeholder="주의사항 문구">
+            </div>
+        </div>
+        <div class="btn-group mt-2">
+            <button type="submit" class="btn btn-primary">🚘 신규 차량 탭 추가 생성</button>
+            <button type="button" class="btn btn-secondary" onclick="toggleAddVehicleModal()">취소</button>
+        </div>
+    </form>
+</div>
+{% endif %}
 
 <!-- 1. 차량 선택 탭 목록 (엑셀 하단 시트 탭 느낌) -->
 <div class="vehicle-tab-container">
@@ -350,6 +410,23 @@
     </table>
 </div>
 
+<!-- 운행일지 20개 단위 페이징 네비게이션 -->
+{% if pagination and pagination.pages > 1 %}
+<div class="pagination mt-3">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=pagination.prev_num) }}">← 이전</a>
+    {% endif %}
+    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+            <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=page_num) }}" class="{{ 'active' if page_num == pagination.page }}">{{ page_num }}</a>
+        {% endif %}
+    {% endfor %}
+    {% if pagination.has_next %}
+    <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=pagination.next_num) }}">다음 →</a>
+    {% endif %}
+</div>
+{% endif %}
+
 <!-- 5. 운행일지 리스트 항목 수정 팝업/모달 (종료시간, 운전자, 주행거리, 용도, 비고) -->
 <div id="log-item-edit-panel" class="card" style="display: none; border: 2px solid var(--accent-primary); margin-top: 24px;">
     <div class="card-header" style="background: #1e293b; color: #f8fafc;">
@@ -401,9 +478,25 @@
         }
     }
 
+    // 엑셀 출력 패널 토글
+    function toggleExcelExportModal() {
+        const panel = document.getElementById('excel-export-panel');
+        if (panel) {
+            panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+        }
+    }
+
     // 관리자 편집 패널 토글
     function toggleAdminEditModal() {
         const panel = document.getElementById('admin-edit-panel');
+        if (panel) {
+            panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+        }
+    }
+
+    // 신규 차량 추가 폼 패널 토글 (새 탭 생성용)
+    function toggleAddVehicleModal() {
+        const panel = document.getElementById('add-vehicle-panel');
         if (panel) {
             panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
         }
@@ -458,6 +551,19 @@
         const endInp = document.getElementById('inp-end-time');
         if (endInp && !endInp.value) {
             endInp.value = nowLocalStr;
+        }
+
+        const dateStrToday = `${year}-${month}-${day}`;
+        const dateStrFirst = `${year}-${month}-01`;
+
+        const expStartInp = document.getElementById('export_start_date');
+        if (expStartInp && !expStartInp.value) {
+            expStartInp.value = dateStrFirst;
+        }
+
+        const expEndInp = document.getElementById('export_end_date');
+        if (expEndInp && !expEndInp.value) {
+            expEndInp.value = dateStrToday;
         }
 
         calcDistances();
