@@ -4,6 +4,7 @@
 {% block extra_css %}
 <!-- Flatpickr 캘린더 & 시간 선택기 CSS (선택 후 [✓ 확인] 버튼 탑재) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
 <style>
     .flatpickr-confirm {
@@ -17,91 +18,45 @@
         margin: 6px !important;
     }
 
-    /* ===== 법인차량 운행일지 전용 밝고 가독성 최고 수준의 라이트 테마 ===== */
-
-    /* 카드 및 폼 배경 */
-    .excel-header-box,
-    .log-input-card,
-    #excel-export-panel,
-    #add-vehicle-panel,
-    #admin-edit-panel,
-    #log-item-edit-panel {
-        background: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06) !important;
-        color: #0f172a !important;
-    }
-
-    /* 상단 타이틀 및 라벨 가독성 강화 */
-    .page-header h2,
-    .card-title,
-    .log-input-card h3 {
-        color: #0f172a !important;
-        font-weight: 800 !important;
-    }
-    .page-header p {
-        color: #475569 !important;
-    }
-
-    /* 폼 라벨 & 인풋 필드 */
-    .form-label {
-        color: #1e293b !important;
-        font-weight: 700 !important;
-    }
-    .form-control {
-        background: #ffffff !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
-        font-weight: 600 !important;
-    }
-    .form-control:focus {
-        border-color: #0284c7 !important;
-        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
-    }
-    .form-control::placeholder {
-        color: #94a3b8 !important;
-        font-weight: 400 !important;
-    }
-
-    /* 탭 스타일링 */
+    /* ===== 차량 운행일지 전용 원본 다크 테마 ===== */
     .vehicle-tab-container {
         display: flex;
         gap: 6px;
-        border-bottom: 2px solid #cbd5e1 !important;
-        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 10px;
     }
     .vehicle-tab {
-        padding: 10px 20px;
+        padding: 6px 14px;
         font-weight: 700;
-        font-size: 14px;
-        background: #f1f5f9 !important;
-        color: #475569 !important;
-        border: 1px solid #cbd5e1 !important;
-        border-bottom: none !important;
+        font-size: 13px;
+        color: var(--text-secondary);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-bottom: none;
         border-radius: 6px 6px 0 0;
         text-decoration: none;
         transition: all 0.2s ease;
     }
     .vehicle-tab:hover {
-        background: #e2e8f0 !important;
-        color: #0f172a !important;
+        color: var(--text-white);
+        background: var(--bg-card-hover);
     }
     .vehicle-tab.active {
-        background: #ffffff !important;
-        color: #0284c7 !important;
-        border-color: #0284c7 !important;
-        border-bottom: 2px solid #ffffff !important;
-        font-weight: 800 !important;
+        color: var(--accent-primary);
+        background: var(--bg-main);
+        border-color: var(--accent-primary);
+        border-bottom: 2px solid var(--bg-main);
         margin-bottom: -2px;
     }
 
-    /* 엑셀 헤더 정보 표 디자인 */
+    /* 엑셀 헤더 정보 표 메인 다크 디자인 */
     .excel-header-box {
-        background: #f8fafc !important;
-        border: 2px solid #cbd5e1 !important;
+        background: #1c2333;
+        border: 2px solid #2d3748;
         border-radius: 8px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .excel-header-row {
         display: flex;
@@ -116,26 +71,26 @@
         font-size: 14px;
     }
     .excel-meta-label {
-        background: #e2e8f0 !important;
-        color: #334155 !important;
+        background: #2b3649;
+        color: #94a3b8;
         padding: 4px 10px;
         border-radius: 4px;
-        font-weight: 700;
+        font-weight: 600;
         font-size: 12px;
     }
     .excel-meta-val {
-        font-weight: 800;
-        font-size: 16px;
-        color: #0f172a !important;
+        font-weight: 700;
+        font-size: 14px;
+        color: #f8fafc;
     }
     .excel-notice-alert {
-        background: #fef2f2 !important;
-        border: 1px solid #fca5a5 !important;
-        color: #b91c1c !important;
-        padding: 8px 16px;
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid #ef4444;
+        color: #fca5a5;
+        padding: 4px 12px;
         border-radius: 6px;
         font-weight: 700;
-        font-size: 13px;
+        font-size: 12px;
         flex: 1;
         min-width: 280px;
         display: flex;
@@ -143,92 +98,48 @@
         gap: 6px;
     }
 
-    /* 엑셀 양식 테이블 스타일링 (밝고 선명한 테마) */
+    /* 엑셀 양식 테이블 다크 스타일링 */
     .excel-table-container {
         overflow-x: auto;
-        border: 1px solid #cbd5e1 !important;
+        border: 1px solid #334155;
         border-radius: 8px;
-        background: #ffffff !important;
-        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+        background: #0f172a;
     }
     .excel-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
-        color: #0f172a !important;
+        color: #e2e8f0;
     }
     .excel-table th {
-        background: #1e293b !important;
-        color: #ffffff !important;
+        background: #1e293b;
+        color: #cbd5e1;
         font-weight: 700;
-        border: 1px solid #334155 !important;
+        border: 1px solid #334155;
         padding: 10px 8px;
         text-align: center;
         white-space: nowrap;
     }
     .excel-table td {
-        border: 1px solid #e2e8f0 !important;
+        border: 1px solid #334155;
         padding: 10px 8px;
         text-align: center;
         white-space: nowrap;
-        color: #0f172a !important;
-        background: #ffffff;
     }
     .excel-table tr:nth-child(even) td {
-        background: #f8fafc !important;
+        background: rgba(30, 41, 59, 0.4);
     }
     .excel-table tr:hover td {
-        background: #f1f5f9 !important;
-    }
-    .excel-table tfoot tr td {
-        background: #f1f5f9 !important;
-        color: #0f172a !important;
+        background: rgba(51, 65, 85, 0.6);
     }
 
-    /* 컴팩트 폼 & 상단 요소 높이 압축 (리스트 가시성 극대화) */
-    .page-header {
-        margin-bottom: 12px !important;
-    }
-    .page-header h2 {
-        font-size: 20px !important;
-    }
-    .page-header p {
-        font-size: 12px !important;
-        margin-bottom: 0 !important;
-    }
-
-    .vehicle-tab-container {
-        margin-bottom: 10px !important;
-    }
-    .vehicle-tab {
-        padding: 6px 14px !important;
-        font-size: 13px !important;
-    }
-
-    .excel-header-box {
-        padding: 8px 14px !important;
-        margin-bottom: 10px !important;
-    }
-    .excel-meta-val {
-        font-size: 14px !important;
-    }
-    .excel-notice-alert {
-        padding: 4px 12px !important;
-        font-size: 12px !important;
-    }
-
-    /* 입력 폼 그리드 슬림/컴팩트화 */
+    /* 입력 폼 슬림/컴팩트화 (다크 테마 유지) */
     .log-input-card {
-        background: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
-        padding: 10px 14px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
-    }
-    .log-input-card h3 {
-        font-size: 13px !important;
-        margin-bottom: 8px !important;
+        padding: 10px 14px;
+        margin-bottom: 12px;
     }
     .compact-form-grid {
         display: grid;
@@ -236,18 +147,22 @@
         gap: 8px 12px;
     }
     .compact-form-grid .form-group {
-        margin-bottom: 0 !important;
+        margin-bottom: 0;
     }
     .compact-form-grid .form-label {
-        font-size: 11px !important;
-        margin-bottom: 2px !important;
-        font-weight: 700 !important;
+        font-size: 11px;
+        margin-bottom: 2px;
+        font-weight: 700;
         white-space: nowrap;
+        color: var(--text-secondary);
     }
     .compact-form-grid .form-control {
-        padding: 4px 8px !important;
-        font-size: 12px !important;
-        height: 30px !important;
+        padding: 4px 8px;
+        font-size: 12px;
+        height: 30px;
+        background: var(--bg-main);
+        color: var(--text-main);
+        border: 1px solid var(--border-color);
     }
 </style>
 {% endblock %}
@@ -543,31 +458,31 @@
             {% if logs %}
                 {% for log in logs %}
                 <tr>
-                    <td style="color: #475569; font-size:12px; font-weight:600;">{{ log.start_time or '-' }}</td>
-                    <td style="color: #475569; font-size:12px; font-weight:600;">{{ log.end_time or '-' }}</td>
-                    <td style="color: #334155;">{{ log.department or '-' }}</td>
-                    <td style="font-weight: 700; color: #0f172a;">{{ log.applicant or '-' }}</td>
-                    <td style="color: #334155;">{{ log.driver or '-' }}</td>
+                    <td style="color: #cbd5e1; font-size:12px;">{{ log.start_time or '-' }}</td>
+                    <td style="color: #cbd5e1; font-size:12px;">{{ log.end_time or '-' }}</td>
+                    <td>{{ log.department or '-' }}</td>
+                    <td style="font-weight: 600; color: #f8fafc;">{{ log.applicant or '-' }}</td>
+                    <td>{{ log.driver or '-' }}</td>
                     {% if ready_map and ready_map.get(log.id) %}
-                    <td style="font-family: monospace; color: #475569; font-weight: 700;">{{ "{:,.0f}".format(log.start_distance) if log.start_distance else '0' }}</td>
+                    <td style="font-family: monospace; color: #94a3b8;">{{ "{:,.0f}".format(log.start_distance) if log.start_distance else '0' }}</td>
                     {% else %}
-                    <td style="color: #64748b; font-size: 11px; font-weight: 600; background: #f1f5f9; border-radius: 4px; border: 1px solid #cbd5e1;">-[이전 운행 마감 대기]-</td>
+                    <td style="color: #94a3b8; font-size: 11px; font-weight: 500; background: rgba(148, 163, 184, 0.05); border-radius: 4px;">-[이전 운행 마감 대기]-</td>
                     {% endif %}
                     {% if log.distance and log.distance > 0 %}
-                    <td style="font-family: monospace; color: #15803d; font-weight: 800;">{{ "{:,.0f}".format(log.distance) }}</td>
-                    <td style="font-family: monospace; color: #0284c7; font-weight: 800;">{{ "{:,.0f}".format(log.end_distance) }}</td>
+                    <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) }}</td>
+                    <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) }}</td>
                     {% else %}
-                        <td style="color: #94a3b8; font-size: 11px;">-</td>
+                        <td style="color: #64748b; font-size: 11px;">-</td>
                         {% if log.start_time and now_str < log.start_time %}
-                        <td style="color: #0369a1; font-size: 11px; font-weight: 700; background: #e0f2fe; border-radius: 4px; border: 1px solid #bae6fd;">-[사용 전]-</td>
+                        <td style="color: #60a5fa; font-size: 11px; font-weight: 600; background: rgba(96, 165, 250, 0.1); border-radius: 4px;">-[사용 전]-</td>
                         {% elif log.end_time and now_str > log.end_time %}
-                        <td style="color: #b91c1c; font-size: 11px; font-weight: 700; background: #fef2f2; border-radius: 4px; border: 1px solid #fecaca;">-[거리 미입력]-</td>
+                        <td style="color: #f87171; font-size: 11px; font-weight: 600; background: rgba(248, 113, 113, 0.1); border-radius: 4px;">-[거리 미입력]-</td>
                         {% else %}
-                        <td style="color: #b45309; font-size: 11px; font-weight: 700; background: #fef3c7; border-radius: 4px; border: 1px solid #fde68a;">-[운행 중]-</td>
+                        <td style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">-[운행 중]-</td>
                         {% endif %}
                     {% endif %}
-                    <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis; color: #334155;">{{ log.purpose or '-' }}</td>
-                    <td style="color: #334155;">{{ log.notes or '-' }}</td>
+                    <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.purpose or '-' }}</td>
+                    <td>{{ log.notes or '-' }}</td>
                     <td>
                         {% if current_user.is_admin or current_user.is_vehicle_manager or log.registered_by == current_user.id %}
                         <button type="button" class="btn btn-sm btn-secondary" style="padding: 2px 8px; font-size:11px; margin-right:4px;"
