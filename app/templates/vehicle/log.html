@@ -223,12 +223,12 @@
 
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">② 시작시간 *</label>
-                <input type="text" name="start_time" class="form-control" id="inp-start-time" placeholder="예: 2026-08-27 11:00 AM" required>
+                <label class="form-label">② 시작시간 (캘린더 & 시간 선택) *</label>
+                <input type="datetime-local" name="start_time" class="form-control" id="inp-start-time" required>
             </div>
             <div class="form-group">
-                <label class="form-label">③ 종료시간</label>
-                <input type="text" name="end_time" class="form-control" id="inp-end-time" placeholder="예: 2026-08-27 2:00 PM">
+                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택)</label>
+                <input type="datetime-local" name="end_time" class="form-control" id="inp-end-time">
             </div>
 
             <div class="form-group">
@@ -237,11 +237,11 @@
             </div>
             <div class="form-group">
                 <label class="form-label">④ 신청자 성명 *</label>
-                <input type="text" name="applicant" class="form-control" value="{{ current_user.username }}" required>
+                <input type="text" name="applicant" class="form-control" placeholder="신청자 성명 직접 입력" required>
             </div>
             <div class="form-group">
                 <label class="form-label">④ 운전자 성명</label>
-                <input type="text" name="driver" class="form-control" value="{{ current_user.username }}">
+                <input type="text" name="driver" class="form-control" placeholder="운전자 성명 직접 입력">
             </div>
 
             <div class="form-group">
@@ -378,11 +378,11 @@
         const hours = String(now.getHours()).padStart(2, '0');
         const mins = String(now.getMinutes()).padStart(2, '0');
 
-        const nowStr = `${year}-${month}-${day} ${hours}:${mins}`;
+        const nowLocalStr = `${year}-${month}-${day}T${hours}:${mins}`;
 
         const startInp = document.getElementById('inp-start-time');
         if (startInp && !startInp.value) {
-            startInp.value = nowStr;
+            startInp.value = nowLocalStr;
         }
 
         calcDistances();

@@ -71,8 +71,8 @@ def add_log(vehicle_id):
     """운행일지 항목 신규 등록 (주행후 = 주행전 + 주행거리 자동 계산 적용)"""
     vehicle = Vehicle.query.get_or_404(vehicle_id)
 
-    start_time = request.form.get('start_time', '').strip()
-    end_time = request.form.get('end_time', '').strip()
+    start_time = request.form.get('start_time', '').strip().replace('T', ' ')
+    end_time = request.form.get('end_time', '').strip().replace('T', ' ')
     department = request.form.get('department', '').strip()
     applicant = request.form.get('applicant', '').strip()
     driver = request.form.get('driver', '').strip()

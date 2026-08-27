@@ -125,3 +125,16 @@ def _seed_initial_data():
         admin_user.set_password('admin1234!')  # 초기 비밀번호 (변경 필요)
         db.session.add(admin_user)
         db.session.commit()
+
+    # 차량운행 전용 공용 계정(driver)이 없으면 생성 (여러 사용자 공용 사용 계정)
+    if User.query.filter_by(username='driver').first() is None:
+        v_role = Role.query.filter_by(name='vehicle_manager').first() or Role.query.filter_by(name='viewer').first()
+        driver_user = User(
+            username='driver',
+            email='driver@smu.ac.kr',
+            role_id=v_role.id,
+            is_active=True,
+        )
+        driver_user.set_password('driver1234!')  # 공용 초기 비밀번호
+        db.session.add(driver_user)
+        db.session.commit()
