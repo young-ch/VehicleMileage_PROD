@@ -146,13 +146,43 @@
         background: rgba(51, 65, 85, 0.6);
     }
 
-    /* 입력 폼 슬림/컴팩트화 (다크 테마 유지) */
+    /* 신규 운행일지 기록 폼 전용 화이트(#ffffff) 테마 및 가독성 텍스트 */
     .log-input-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 8px;
-        padding: 10px 14px;
-        margin-bottom: 12px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+    }
+    .log-input-card h3 {
+        color: #0284c7 !important;
+        font-weight: 800 !important;
+    }
+    .log-input-card .compact-form-grid .form-label {
+        color: #0f172a !important;
+        font-weight: 700 !important;
+        font-size: 11px;
+    }
+    .log-input-card .compact-form-grid .form-control {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        font-weight: 600 !important;
+    }
+    .log-input-card .compact-form-grid .form-control::placeholder {
+        color: #64748b !important;
+        font-weight: 400 !important;
+    }
+    .log-input-card .compact-form-grid .form-control:focus {
+        background: #ffffff !important;
+        border-color: #0284c7 !important;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+    }
+    .req-star {
+        color: #ef4444 !important;
+        font-weight: 800 !important;
+        margin-left: 2px;
     }
 
     .compact-form-grid {
@@ -426,13 +456,13 @@
 
         <div class="compact-form-grid">
             <div class="form-group">
-                <label class="form-label">② 시작시간 *</label>
+                <label class="form-label">② 시작시간 <span class="req-star">*</span></label>
                 <input type="text" name="start_time" class="form-control datetime-picker" id="inp-start-time"
                     value="{{ form_data.get('start_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required
                     readonly style="cursor: pointer;">
             </div>
             <div class="form-group">
-                <label class="form-label">③ 종료시간 *</label>
+                <label class="form-label">③ 종료시간 <span class="req-star">*</span></label>
                 <input type="text" name="end_time" class="form-control datetime-picker" id="inp-end-time"
                     value="{{ form_data.get('end_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required
                     readonly style="cursor: pointer;">
@@ -444,7 +474,7 @@
                     value="{{ form_data.get('department', '') if form_data else '' }}" placeholder="예: 국제협력국">
             </div>
             <div class="form-group">
-                <label class="form-label">④ 신청자 *</label>
+                <label class="form-label">④ 신청자 <span class="req-star">*</span></label>
                 <input type="text" name="applicant" class="form-control"
                     value="{{ form_data.get('applicant', '') if form_data else '' }}" placeholder="신청자 성명" required>
             </div>
@@ -454,8 +484,9 @@
                     value="{{ form_data.get('driver', '') if form_data else '' }}" placeholder="운전자 성명">
             </div>
 
+            {% if current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
             <div class="form-group">
-                <label class="form-label">⑤ 주행 전 (km)</label>
+                <label class="form-label">⑤ 주행 전 (km) <span class="req-star">*</span></label>
                 <input type="number" step="0.1" name="start_distance" id="inp_start_dist" class="form-control"
                     value="{{ form_data.get('start_distance', default_start_distance) if form_data else default_start_distance }}"
                     oninput="calcDistances()" required>
@@ -471,8 +502,13 @@
             <div class="form-group">
                 <label class="form-label">⑦ 주행 후 (km)</label>
                 <input type="text" id="inp_end_dist" class="form-control" placeholder="자동계산" readonly
-                    style="background: #f8fafc; font-weight:700; color:#0284c7;">
+                    style="background: #f1f5f9 !important; color: #0284c7 !important; font-weight:700;">
             </div>
+            {% else %}
+            <!-- 일반 뷰어 권한자의 신규 등록 시 주행 거리 필드 제외 (기본값 자동 할당, 추후 수정 시 입력) -->
+            <input type="hidden" name="start_distance" value="{{ default_start_distance }}">
+            <input type="hidden" name="distance" value="0">
+            {% endif %}
 
             <div class="form-group">
                 <label class="form-label">⑧ 용도 / 사유</label>
