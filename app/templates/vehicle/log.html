@@ -790,13 +790,21 @@
         const nowStr = `${year}-${month}-${day} ${hours}:${mins}`;
 
         const startInp = document.getElementById('inp-start-time');
-        if (startInp && !startInp.value && startInp._flatpickr) {
-            startInp._flatpickr.setDate(nowStr);
+        if (startInp && startInp._flatpickr) {
+            if (startInp.value) {
+                startInp._flatpickr.setDate(startInp.value);
+            } else {
+                startInp._flatpickr.setDate(nowStr);
+            }
         }
 
         const endInp = document.getElementById('inp-end-time');
-        if (endInp && !endInp.value && endInp._flatpickr) {
-            endInp._flatpickr.setDate(nowStr);
+        if (endInp && endInp._flatpickr) {
+            if (endInp.value) {
+                endInp._flatpickr.setDate(endInp.value);
+            } else {
+                endInp._flatpickr.setDate(nowStr);
+            }
         }
 
         const dateStrToday = `${year}-${month}-${day}`;
@@ -813,6 +821,19 @@
         }
 
         calcDistances();
+
+        {% if edit_form_data and edit_log_id %}
+        openLogItemEditModal(
+            {{ edit_log_id }},
+            '{{ edit_form_data.get("start_time", "") }}',
+            '{{ edit_form_data.get("end_time", "") }}',
+            '{{ edit_form_data.get("applicant", "") }}',
+            '{{ edit_form_data.get("driver", "") }}',
+            '{{ edit_form_data.get("distance", "0") }}',
+            '{{ edit_form_data.get("purpose", "") }}',
+            '{{ edit_form_data.get("notes", "") }}'
+        );
+        {% endif %}
     });
 </script>
 {% endblock %}

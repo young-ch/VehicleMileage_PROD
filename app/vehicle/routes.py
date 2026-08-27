@@ -101,7 +101,7 @@ def get_start_dist_ready_map(vehicle_id):
     return ready_map
 
 
-def _render_log_page(vehicle_id, form_data=None):
+def _render_log_page(vehicle_id, form_data=None, edit_form_data=None, edit_log_id=None):
     """차량별 운행일지 조회 및 렌더링 헬퍼 (검증 오류 시 사용자가 기입한 form_data를 보존하여 복원)"""
     _ensure_default_vehicles()
     current_vehicle = Vehicle.query.get_or_404(vehicle_id)
@@ -143,7 +143,9 @@ def _render_log_page(vehicle_id, form_data=None):
                            total_distance=total_distance,
                            now_str=now_str,
                            ready_map=ready_map,
-                           form_data=form_data)
+                           form_data=form_data,
+                           edit_form_data=edit_form_data,
+                           edit_log_id=edit_log_id)
 
 
 @vehicle_bp.route('/<int:vehicle_id>')
@@ -151,7 +153,9 @@ def _render_log_page(vehicle_id, form_data=None):
 def view_log(vehicle_id):
     """차량별 운행일지 조회 뷰 (20개 단위 페이징 처리 및 엑셀 스타일 디자인)"""
     form_data = session.pop('add_log_form_data', None)
-    return _render_log_page(vehicle_id, form_data=form_data)
+    edit_form_data = session.pop('edit_log_form_data', None)
+    edit_log_id = session.pop('edit_log_id', None)
+    return _render_log_page(vehicle_id, form_data=form_data, edit_form_data=edit_form_data, edit_log_id=edit_log_id)
 
 
 @vehicle_bp.route('/<int:vehicle_id>/log/add', methods=['POST'])
@@ -254,11 +258,15 @@ def edit_log(log_id):
 
     # 수정 시 시간 검증 및 중복 검증
     if new_end_time <= new_start_time:
+        session['edit_log_form_data'] = request.form.to_dict()
+        session['edit_log_id'] = log_id
         flash('⚠️ 입력 오류: 종료시간은 시작시간보다 이전이거나 같을 수 없습니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     now_date_str = date.today().strftime('%Y-%m-%d')
     if new_start_time[:10] < now_date_str:
+        session['edit_log_form_data'] = request.form.to_dict()
+        session['edit_log_id'] = log_id
         flash(f"⚠️ 입력 오류: 현재 날짜({now_date_str})보다 이전 날짜로는 수정할 수 없습니다. (선택날짜: {new_start_time[:10]})", 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
