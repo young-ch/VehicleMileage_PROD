@@ -459,36 +459,41 @@
         <div class="compact-form-grid">
             <div class="form-group">
                 <label class="form-label">② 시작시간 *</label>
-                <input type="text" name="start_time" class="form-control datetime-picker" id="inp-start-time" placeholder="시간 선택 [확인]" required readonly style="cursor: pointer;">
+                <input type="text" name="start_time" class="form-control datetime-picker" id="inp-start-time" 
+                       value="{{ form_data.get('start_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required readonly style="cursor: pointer;">
             </div>
             <div class="form-group">
                 <label class="form-label">③ 종료시간 *</label>
-                <input type="text" name="end_time" class="form-control datetime-picker" id="inp-end-time" placeholder="시간 선택 [확인]" required readonly style="cursor: pointer;">
+                <input type="text" name="end_time" class="form-control datetime-picker" id="inp-end-time" 
+                       value="{{ form_data.get('end_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required readonly style="cursor: pointer;">
             </div>
 
             <div class="form-group">
                 <label class="form-label">④ 부서</label>
-                <input type="text" name="department" class="form-control" placeholder="예: 국제협력국">
+                <input type="text" name="department" class="form-control" 
+                       value="{{ form_data.get('department', '') if form_data else '' }}" placeholder="예: 국제협력국">
             </div>
             <div class="form-group">
                 <label class="form-label">④ 신청자 *</label>
-                <input type="text" name="applicant" class="form-control" placeholder="신청자 성명" required>
+                <input type="text" name="applicant" class="form-control" 
+                       value="{{ form_data.get('applicant', '') if form_data else '' }}" placeholder="신청자 성명" required>
             </div>
             <div class="form-group">
                 <label class="form-label">④ 운전자</label>
-                <input type="text" name="driver" class="form-control" placeholder="운전자 성명">
+                <input type="text" name="driver" class="form-control" 
+                       value="{{ form_data.get('driver', '') if form_data else '' }}" placeholder="운전자 성명">
             </div>
 
             <div class="form-group">
                 <label class="form-label">⑤ 주행 전 (km)</label>
                 <input type="number" step="0.1" name="start_distance" id="inp_start_dist" class="form-control" 
-                       value="{{ default_start_distance }}" oninput="calcDistances()" required>
+                       value="{{ form_data.get('start_distance', default_start_distance) if form_data else default_start_distance }}" oninput="calcDistances()" required>
             </div>
 
             <div class="form-group">
                 <label class="form-label">⑥ 주행거리 (km)</label>
                 <input type="number" step="0.1" name="distance" id="inp_distance" class="form-control" 
-                       placeholder="도착 후 기입" oninput="calcDistances()">
+                       value="{{ form_data.get('distance', '') if form_data else '' }}" placeholder="도착 후 기입" oninput="calcDistances()">
             </div>
 
             <div class="form-group">
@@ -499,12 +504,14 @@
 
             <div class="form-group">
                 <label class="form-label">⑧ 용도 / 사유</label>
-                <input type="text" name="purpose" class="form-control" placeholder="예: 업무 외근">
+                <input type="text" name="purpose" class="form-control" 
+                       value="{{ form_data.get('purpose', '') if form_data else '' }}" placeholder="예: 업무 외근">
             </div>
 
             <div class="form-group">
                 <label class="form-label">비고</label>
-                <input type="text" name="notes" class="form-control" placeholder="충전/이상유무">
+                <input type="text" name="notes" class="form-control" 
+                       value="{{ form_data.get('notes', '') if form_data else '' }}" placeholder="충전/이상유무">
             </div>
         </div>
     </form>

@@ -6,7 +6,7 @@ from urllib.parse import quote
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-from flask import render_template, redirect, url_for, flash, request, Response, jsonify
+from flask import render_template, redirect, url_for, flash, request, Response, jsonify, session
 from flask_login import login_required, current_user
 from ..extensions import db
 from ..models.vehicle import Vehicle, VehicleLog
@@ -101,10 +101,8 @@ def get_start_dist_ready_map(vehicle_id):
     return ready_map
 
 
-@vehicle_bp.route('/<int:vehicle_id>')
-@login_required
-def view_log(vehicle_id):
-    """차량별 운행일지 조회 뷰 (20개 단위 페이징 처리 및 엑셀 스타일 디자인)"""
+def _render_log_page(vehicle_id, form_data=None):
+    """차량별 운행일지 조회 및 렌더링 헬퍼 (검증 오류 시 사용자가 기입한 form_data를 보존하여 복원)"""
     _ensure_default_vehicles()
     current_vehicle = Vehicle.query.get_or_404(vehicle_id)
     all_vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
@@ -115,7 +113,7 @@ def view_log(vehicle_id):
 
     page = request.args.get('page', 1, type=int)
 
-    # 요청사항 2: 운행 목록은 시작시간 순으로 정렬
+    # 운행 목록은 시작시간 순으로 정렬
     pagination = VehicleLog.query.filter_by(vehicle_id=vehicle_id)\
         .order_by(VehicleLog.start_time.desc())\
         .paginate(page=page, per_page=20, error_out=False)
@@ -144,7 +142,16 @@ def view_log(vehicle_id):
                            default_start_distance=default_start_distance,
                            total_distance=total_distance,
                            now_str=now_str,
-                           ready_map=ready_map)
+                           ready_map=ready_map,
+                           form_data=form_data)
+
+
+@vehicle_bp.route('/<int:vehicle_id>')
+@login_required
+def view_log(vehicle_id):
+    """차량별 운행일지 조회 뷰 (20개 단위 페이징 처리 및 엑셀 스타일 디자인)"""
+    form_data = session.pop('add_log_form_data', None)
+    return _render_log_page(vehicle_id, form_data=form_data)
 
 
 @vehicle_bp.route('/<int:vehicle_id>/log/add', methods=['POST'])
@@ -160,23 +167,27 @@ def add_log(vehicle_id):
     driver = request.form.get('driver', '').strip()
 
     if not start_time or not end_time or not applicant:
+        session['add_log_form_data'] = request.form.to_dict()
         flash('시작시간, 종료시간 및 신청자 성명은 필수 입력값입니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     # 요청사항 1: 시작시간보다 종료시간이 빠를 수 없도록 검증
     if end_time <= start_time:
+        session['add_log_form_data'] = request.form.to_dict()
         flash('⚠️ 입력 오류: 종료시간은 시작시간보다 이전이거나 같을 수 없습니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     # 요청사항 2: 현재 날짜보다 이전 날짜를 선택했을 경우 경고 및 차단
     now_date_str = date.today().strftime('%Y-%m-%d')
     if start_time[:10] < now_date_str:
+        session['add_log_form_data'] = request.form.to_dict()
         flash(f"⚠️ 입력 오류: 현재 날짜({now_date_str})보다 이전 날짜로는 운행일지를 새로 등록할 수 없습니다. (선택한 날짜: {start_time[:10]})", 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     # 요청사항 2 & 3: 동일 차량 내 시간 중복 검증 (타 차량과는 중복 가능, 동일 차량 중복 시 경고 및 예약자 노출)
     overlap_log = check_time_overlap(vehicle_id, start_time, end_time)
     if overlap_log:
+        session['add_log_form_data'] = request.form.to_dict()
         reserved_name = overlap_log.applicant or overlap_log.driver or '사용자미상'
         dept_str = f" ({overlap_log.department})" if overlap_log.department else ""
         flash(
