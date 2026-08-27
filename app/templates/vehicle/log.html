@@ -2,7 +2,21 @@
 {% block title %}{{ current_vehicle.name }} 운행일지 - 법인차량 관리{% endblock %}
 
 {% block extra_css %}
+<!-- Flatpickr 캘린더 & 시간 선택기 CSS (선택 후 [✓ 확인] 버튼 탑재) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
 <style>
+    .flatpickr-confirm {
+        background: #0284c7 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        padding: 8px 16px !important;
+        cursor: pointer !important;
+        border-radius: 4px !important;
+        text-align: center !important;
+        margin: 6px !important;
+    }
     /* 엑셀 스타일 차량 운행일지 전용 CSS */
     .vehicle-tab-container {
         display: flex;
@@ -309,12 +323,12 @@
 
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">② 시작시간 (캘린더 & 시간 선택) *</label>
-                <input type="datetime-local" name="start_time" class="form-control" id="inp-start-time" required>
+                <label class="form-label">② 시작시간 (캘린더 & 시간 선택 후 [확인] 클릭) *</label>
+                <input type="text" name="start_time" class="form-control datetime-picker" id="inp-start-time" placeholder="날짜 및 시간 선택 후 [확인] 클릭" required readonly style="cursor: pointer; background: var(--bg-card);">
             </div>
             <div class="form-group">
-                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택) *</label>
-                <input type="datetime-local" name="end_time" class="form-control" id="inp-end-time" required>
+                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택 후 [확인] 클릭) *</label>
+                <input type="text" name="end_time" class="form-control datetime-picker" id="inp-end-time" placeholder="날짜 및 시간 선택 후 [확인] 클릭" required readonly style="cursor: pointer; background: var(--bg-card);">
             </div>
 
             <div class="form-group">
@@ -462,8 +476,8 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택)</label>
-                <input type="datetime-local" name="end_time" id="edit_end_time" class="form-control">
+                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택 후 [확인] 클릭)</label>
+                <input type="text" name="end_time" id="edit_end_time" class="form-control datetime-picker" placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
             </div>
             <div class="form-group">
                 <label class="form-label">④ 운전자 성명</label>
@@ -492,6 +506,11 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Flatpickr 캘린더 & 시간 피커 JS 및 [확인] 버튼 플러그인 -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>
+
 <script>
     // 주행후 거리 자동 계산: 주행후 = 주행전 + 주행거리
     function calcDistances() {
@@ -536,10 +555,14 @@
         if (panel && form) {
             form.action = `/vehicle/log/${id}/edit`;
 
-            if (endTime && endTime.includes(' ')) {
-                endTime = endTime.replace(' ', 'T');
+            const cleanEndTime = endTime ? endTime.replace('T', ' ') : '';
+            const editInp = document.getElementById('edit_end_time');
+            if (editInp && editInp._flatpickr) {
+                editInp._flatpickr.setDate(cleanEndTime);
+            } else if (editInp) {
+                editInp.value = cleanEndTime;
             }
-            document.getElementById('edit_end_time').value = endTime || '';
+
             document.getElementById('edit_driver').value = driver || '';
             document.getElementById('edit_distance').value = (distance && distance !== '0') ? distance : '';
             document.getElementById('edit_purpose').value = purpose || '';
@@ -558,8 +581,22 @@
         }
     }
 
-    // 페이지 로드 시 오늘 날짜 기본 입력
+    // 페이지 로드 시 캘린더 피커 초기화 및 기본값 세팅
     document.addEventListener('DOMContentLoaded', () => {
+        // Flatpickr 캘린더 & 시간 선택기 (하단에 [✓ 확인 (선택 완료)] 버튼 표시)
+        flatpickr(".datetime-picker", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            locale: "ko",
+            plugins: [new confirmDatePlugin({
+                confirmIcon: "✓",
+                confirmText: " 확인 (선택 완료)",
+                showAlways: false,
+                theme: "dark"
+            })]
+        });
+
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -567,16 +604,16 @@
         const hours = String(now.getHours()).padStart(2, '0');
         const mins = String(now.getMinutes()).padStart(2, '0');
 
-        const nowLocalStr = `${year}-${month}-${day}T${hours}:${mins}`;
+        const nowStr = `${year}-${month}-${day} ${hours}:${mins}`;
 
         const startInp = document.getElementById('inp-start-time');
-        if (startInp && !startInp.value) {
-            startInp.value = nowLocalStr;
+        if (startInp && !startInp.value && startInp._flatpickr) {
+            startInp._flatpickr.setDate(nowStr);
         }
 
         const endInp = document.getElementById('inp-end-time');
-        if (endInp && !endInp.value) {
-            endInp.value = nowLocalStr;
+        if (endInp && !endInp.value && endInp._flatpickr) {
+            endInp._flatpickr.setDate(nowStr);
         }
 
         const dateStrToday = `${year}-${month}-${day}`;
