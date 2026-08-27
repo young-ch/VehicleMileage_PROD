@@ -16,7 +16,7 @@ def users():
     """사용자 목록"""
     page = request.args.get('page', 1, type=int)
     users_list = User.query.order_by(User.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False
+        page=page, per_page=10, error_out=False
     )
     roles = Role.query.all()
     return render_template('admin/users.html', users=users_list, roles=roles)

@@ -38,7 +38,7 @@ def list_personnel():
         pass
         
     pagination = query.order_by(Personnel.status.asc(), Personnel.name.asc()).paginate(
-        page=page, per_page=20, error_out=False
+        page=page, per_page=10, error_out=False
     )
     
     # 2. 이번 달 신규 등록 수 및 퇴사 처리 수 통계 산출 (보고용)
