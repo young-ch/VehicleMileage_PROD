@@ -387,8 +387,8 @@ def export_excel(vehicle_id):
             log.applicant or '',
             log.driver or '',
             f"{log.start_distance:,.0f}" if log.start_distance else "0",
-            f"{log.end_distance:,.0f}" if log.end_distance else "0",
-            f"{log.distance:,.0f}" if log.distance else "0",
+            f"{log.end_distance:,.0f}" if (log.distance and log.distance > 0) else "-[운행 중]-",
+            f"{log.distance:,.0f}" if (log.distance and log.distance > 0) else "-",
             log.purpose or '',
             log.notes or ''
         ])

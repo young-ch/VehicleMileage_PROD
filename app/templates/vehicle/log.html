@@ -358,8 +358,8 @@
 
             <div class="form-group">
                 <label class="form-label">⑥ 주행 후 계기판 거리 (km) [자동 계산]</label>
-                <input type="number" step="0.1" id="inp_end_dist" class="form-control" 
-                       value="{{ default_start_distance }}" readonly style="background: rgba(255,255,255,0.05); font-weight:700; color:#38bdf8;">
+                <input type="text" id="inp_end_dist" class="form-control" 
+                       placeholder="도착 후 주행거리 입력 시 자동계산" readonly style="background: rgba(255,255,255,0.05); font-weight:700; color:#38bdf8;">
             </div>
 
             <div class="form-group" style="grid-column: span 2;">
@@ -413,8 +413,13 @@
                     <td style="font-weight: 600;">{{ log.applicant or '-' }}</td>
                     <td>{{ log.driver or '-' }}</td>
                     <td style="font-family: monospace; color: #94a3b8;">{{ "{:,.0f}".format(log.start_distance) if log.start_distance else '0' }}</td>
-                    <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) if log.end_distance else '0' }}</td>
-                    <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) if log.distance else '0' }}</td>
+                    {% if log.distance and log.distance > 0 %}
+                    <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) }}</td>
+                    <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) }}</td>
+                    {% else %}
+                    <td style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">-[운행 중]-</td>
+                    <td style="color: #64748b; font-size: 11px;">-</td>
+                    {% endif %}
                     <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.purpose or '-' }}</td>
                     <td>{{ log.notes or '-' }}</td>
                     <td>
@@ -520,14 +525,20 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>
 
 <script>
-    // 주행후 거리 자동 계산: 주행후 = 주행전 + 주행거리
+    // 주행후 거리 자동 계산: 주행후 = 주행전 + 주행거리 (주행거리 입력 시에만 세팅)
     function calcDistances() {
         const startDist = parseFloat(document.getElementById('inp_start_dist').value) || 0;
-        const dist = parseFloat(document.getElementById('inp_distance').value) || 0;
+        const distVal = document.getElementById('inp_distance').value;
+        const dist = parseFloat(distVal);
         const endDistEl = document.getElementById('inp_end_dist');
 
         if (endDistEl) {
-            endDistEl.value = (startDist + dist).toFixed(1);
+            if (!isNaN(dist) && dist > 0) {
+                endDistEl.value = (startDist + dist).toFixed(1) + " km";
+            } else {
+                endDistEl.value = "";
+                endDistEl.placeholder = "도착 후 주행거리 입력 시 자동계산";
+            }
         }
     }
 
