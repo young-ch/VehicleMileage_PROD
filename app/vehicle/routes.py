@@ -129,9 +129,9 @@ def delete_log(log_id):
     log_item = VehicleLog.query.get_or_404(log_id)
     vehicle_id = log_item.vehicle_id
 
-    # 작성자 본인 또는 관리자만 삭제 가능
-    if not current_user.is_admin and log_item.registered_by != current_user.id:
-        flash('본인이 등록한 일지 또는 관리자만 삭제할 수 있습니다.', 'danger')
+    # 작성자 본인 또는 차량관리자/관리자만 삭제 가능
+    if not current_user.is_admin and not current_user.is_vehicle_manager and log_item.registered_by != current_user.id:
+        flash('본인이 등록한 일지 또는 차량관리자 권한 보유자만 삭제할 수 있습니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     log_audit('DELETE', 'vehicle_logs', log_item.id, old_values={
@@ -148,9 +148,9 @@ def delete_log(log_id):
 
 @vehicle_bp.route('/<int:vehicle_id>/update-info', methods=['POST'])
 @login_required
-@role_required('admin')
+@permission_required('vehicle_manage')
 def update_vehicle_info(vehicle_id):
-    """관리자 전용: 차종, 차량번호, 유종, 주의문구 수정"""
+    """차량관리자/관리자 전용: 차종, 차량번호, 유종, 주의문구 수정"""
     vehicle = Vehicle.query.get_or_404(vehicle_id)
 
     vehicle.name = request.form.get('name', vehicle.name).strip()

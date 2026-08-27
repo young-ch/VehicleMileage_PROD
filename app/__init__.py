@@ -73,6 +73,7 @@ def _seed_initial_data():
             'jira_create': True,
             'jira_edit': True,
             'jira_delete': True,
+            'vehicle_manage': True,
             'stats_view': True,
             'audit_view': True,
         },
@@ -83,6 +84,14 @@ def _seed_initial_data():
             'jira_create': True,
             'jira_edit': True,
             'jira_delete': True,
+            'vehicle_manage': True,
+            'stats_view': True,
+        },
+        'vehicle_manager': {
+            'jira_create': True,
+            'jira_edit': True,
+            'jira_delete': True,
+            'vehicle_manage': True,
             'stats_view': True,
         },
         'viewer': {

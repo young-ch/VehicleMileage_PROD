@@ -66,6 +66,10 @@ class User(UserMixin, db.Model):
     def is_manager(self):
         return self.role and self.role.name in ('admin', 'manager')
 
+    @property
+    def is_vehicle_manager(self):
+        return self.role and (self.role.name in ('admin', 'manager', 'vehicle_manager') or self.has_permission('vehicle_manage'))
+
     def __repr__(self):
         return f'<User {self.username}>'
 

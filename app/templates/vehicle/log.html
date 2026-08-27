@@ -139,7 +139,7 @@
         <a href="{{ url_for('vehicle.export_excel', vehicle_id=current_vehicle.id) }}" class="btn btn-secondary" style="background:#1e293b; border-color:#334155; color:#38bdf8;">
             📥 엑셀 출력 (.csv)
         </a>
-        {% if current_user.is_admin %}
+        {% if current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
         <button type="button" class="btn btn-warning" onclick="toggleAdminEditModal()">
             ✏️ 차량 정보 수정 (관리자 전용)
         </button>
@@ -180,10 +180,10 @@
 </div>
 
 <!-- 관리자 전용 차량 정보 수정 모달/폼 (기본 숨김) -->
-{% if current_user.is_admin %}
+{% if current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
 <div id="admin-edit-panel" class="card mb-3" style="display: none; border: 2px solid var(--accent-primary);">
     <div class="card-header">
-        <h3 class="card-title">👑 차량 기본 정보 수정 (관리자 전용)</h3>
+        <h3 class="card-title">👑 차량 기본 정보 수정 (차량관리자/관리자 전용)</h3>
     </div>
     <form method="POST" action="{{ url_for('vehicle.update_vehicle_info', vehicle_id=current_vehicle.id) }}" style="padding: 16px;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -318,7 +318,7 @@
                     <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.purpose or '-' }}</td>
                     <td>{{ log.notes or '-' }}</td>
                     <td>
-                        {% if current_user.is_admin or log.registered_by == current_user.id %}
+                        {% if current_user.is_admin or current_user.is_vehicle_manager or log.registered_by == current_user.id %}
                         <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger" style="padding: 2px 6px; font-size:11px;" 
