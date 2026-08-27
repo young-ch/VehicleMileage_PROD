@@ -95,6 +95,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            {% block flash_messages %}
             <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -107,6 +108,7 @@
             </div>
             {% endif %}
             {% endwith %}
+            {% endblock %}
 
             {% block content %}{% endblock %}
         </main>

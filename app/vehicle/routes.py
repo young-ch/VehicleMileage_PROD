@@ -112,6 +112,12 @@ def add_log(vehicle_id):
         flash('⚠️ 입력 오류: 종료시간은 시작시간보다 이전이거나 같을 수 없습니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
+    # 요청사항 2: 현재 날짜보다 이전 날짜를 선택했을 경우 경고 및 차단
+    now_date_str = date.today().strftime('%Y-%m-%d')
+    if start_time[:10] < now_date_str:
+        flash(f"⚠️ 입력 오류: 현재 날짜({now_date_str})보다 이전 날짜로는 운행일지를 새로 등록할 수 없습니다. (선택한 날짜: {start_time[:10]})", 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
     # 요청사항 2 & 3: 동일 차량 내 시간 중복 검증 (타 차량과는 중복 가능, 동일 차량 중복 시 경고 및 예약자 노출)
     overlap_log = check_time_overlap(vehicle_id, start_time, end_time)
     if overlap_log:
@@ -184,6 +190,11 @@ def edit_log(log_id):
             flash('⚠️ 입력 오류: 종료시간은 시작시간보다 이전이거나 같을 수 없습니다.', 'danger')
             return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
+        now_date_str = date.today().strftime('%Y-%m-%d')
+        if new_end_time[:10] < now_date_str:
+            flash(f"⚠️ 입력 오류: 현재 날짜({now_date_str})보다 이전 날짜로는 수정할 수 없습니다.", 'danger')
+            return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
         overlap_log = check_time_overlap(vehicle_id, start_time, new_end_time, exclude_log_id=log_id)
         if overlap_log:
             reserved_name = overlap_log.applicant or overlap_log.driver or '사용자미상'
@@ -232,10 +243,6 @@ def delete_log(log_id):
     """잘못 입력된 운행일지 리스트 항목 삭제"""
     log_item = VehicleLog.query.get_or_404(log_id)
     vehicle_id = log_item.vehicle_id
-
-    if not current_user.is_admin and not current_user.is_vehicle_manager and log_item.registered_by != current_user.id:
-        flash('본인이 등록한 일지 또는 차량관리자 권한 보유자만 삭제할 수 있습니다.', 'danger')
-        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     log_audit('DELETE', 'vehicle_logs', log_item.id, old_values={
         'applicant': log_item.applicant,

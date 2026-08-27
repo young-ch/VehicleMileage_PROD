@@ -245,39 +245,57 @@
     <div class="card-header">
         <h3 class="card-title">👑 차량 기본 정보 수정 (차량관리자/관리자 전용)</h3>
     </div>
-    <form method="POST" action="{{ url_for('vehicle.update_vehicle_info', vehicle_id=current_vehicle.id) }}" style="padding: 16px;">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="form-grid">
-            <div class="form-group">
-                <label class="form-label">차종 명칭</label>
-                <input type="text" name="name" class="form-control" value="{{ current_vehicle.name }}" required>
+    <div style="padding: 16px;">
+        <form method="POST" action="{{ url_for('vehicle.update_vehicle_info', vehicle_id=current_vehicle.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">차종 명칭</label>
+                    <input type="text" name="name" class="form-control" value="{{ current_vehicle.name }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">차량 번호</label>
+                    <input type="text" name="plate_number" class="form-control" value="{{ current_vehicle.plate_number }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">유종</label>
+                    <input type="text" name="fuel_type" class="form-control" value="{{ current_vehicle.fuel_type }}">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label">상단 주의사항 문구</label>
+                    <input type="text" name="notice" class="form-control" value="{{ current_vehicle.notice }}">
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">차량 번호</label>
-                <input type="text" name="plate_number" class="form-control" value="{{ current_vehicle.plate_number }}" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">유종</label>
-                <input type="text" name="fuel_type" class="form-control" value="{{ current_vehicle.fuel_type }}">
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label class="form-label">상단 주의사항 문구</label>
-                <input type="text" name="notice" class="form-control" value="{{ current_vehicle.notice }}">
-            </div>
-        </div>
-        <div class="btn-group mt-2" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <div>
+            <div class="btn-group mt-2">
                 <button type="submit" class="btn btn-primary">💾 관리자 설정 저장</button>
                 <button type="button" class="btn btn-secondary" onclick="toggleAdminEditModal()">취소</button>
             </div>
+        </form>
+
+        <hr style="border-color: #334155; margin: 16px 0;">
+
+        <div style="text-align: right;">
             <form method="POST" action="{{ url_for('vehicle.delete_vehicle', vehicle_id=current_vehicle.id) }}" style="display:inline;" onsubmit="return confirm('🚨 이 차량([{{ current_vehicle.name }}]) 및 모든 운행일지 기록을 정말 완전 삭제하시겠습니까?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger" style="background:#ef4444; border-color:#dc2626;">🗑️ 이 차량 탭 완전 삭제</button>
             </form>
         </div>
-    </form>
+    </div>
 </div>
-{% endif %}
+{% block flash_messages %}{% endblock %}
+
+<!-- 3. 경고문 및 알림 메시지 (운행일지 작성 폼 바로 위에 띄움) -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages mb-3" style="margin-bottom: 20px;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" style="font-size: 15px; padding: 14px 18px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 2px solid {{ '#ef4444' if category == 'danger' else '#f59e0b' if category == 'warning' else '#10b981' }};">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
 
 <!-- 3. 운행일지 작성 폼 -->
 <div class="log-input-card">
