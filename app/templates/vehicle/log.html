@@ -25,6 +25,7 @@
         border-bottom: 2px solid var(--border-color);
         margin-bottom: 10px;
     }
+
     .vehicle-tab {
         padding: 6px 14px;
         font-weight: 700;
@@ -37,10 +38,12 @@
         text-decoration: none;
         transition: all 0.2s ease;
     }
+
     .vehicle-tab:hover {
         color: var(--text-white);
         background: var(--bg-card-hover);
     }
+
     .vehicle-tab.active {
         color: var(--accent-primary);
         background: var(--bg-main);
@@ -56,20 +59,23 @@
         border-radius: 8px;
         padding: 10px 14px;
         margin-bottom: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
+
     .excel-header-row {
         display: flex;
         align-items: center;
         gap: 24px;
         flex-wrap: wrap;
     }
+
     .excel-meta-item {
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 14px;
     }
+
     .excel-meta-label {
         background: #2b3649;
         color: #94a3b8;
@@ -78,11 +84,13 @@
         font-weight: 600;
         font-size: 12px;
     }
+
     .excel-meta-val {
         font-weight: 700;
         font-size: 14px;
         color: #f8fafc;
     }
+
     .excel-notice-alert {
         background: rgba(239, 68, 68, 0.15);
         border: 1px solid #ef4444;
@@ -105,12 +113,14 @@
         border-radius: 8px;
         background: #0f172a;
     }
+
     .excel-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
         color: #e2e8f0;
     }
+
     .excel-table th {
         background: #1e293b;
         color: #cbd5e1;
@@ -120,15 +130,18 @@
         text-align: center;
         white-space: nowrap;
     }
+
     .excel-table td {
         border: 1px solid #334155;
         padding: 10px 8px;
         text-align: center;
         white-space: nowrap;
     }
+
     .excel-table tr:nth-child(even) td {
         background: rgba(30, 41, 59, 0.4);
     }
+
     .excel-table tr:hover td {
         background: rgba(51, 65, 85, 0.6);
     }
@@ -141,14 +154,17 @@
         padding: 10px 14px;
         margin-bottom: 12px;
     }
+
     .compact-form-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 8px 12px;
     }
+
     .compact-form-grid .form-group {
         margin-bottom: 0;
     }
+
     .compact-form-grid .form-label {
         font-size: 11px;
         margin-bottom: 2px;
@@ -156,6 +172,7 @@
         white-space: nowrap;
         color: var(--text-secondary);
     }
+
     .compact-form-grid .form-control {
         padding: 4px 8px;
         font-size: 12px;
@@ -174,7 +191,8 @@
         <p>차량별 운행 기록을 일지 형태로 작성하고 누적 주행거리를 관리합니다</p>
     </div>
     <div class="btn-group">
-        <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()" style="background:#1e293b; border-color:#334155; color:#38bdf8;">
+        <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()"
+            style="background:#1e293b; border-color:#334155; color:#38bdf8;">
             📥 엑셀 출력 (.xlsx)
         </button>
         {% if current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
@@ -199,34 +217,40 @@
             <label class="form-label" style="color: #38bdf8; font-weight: 700; margin-bottom: 8px;">
                 🚘 엑셀 출력 대상 차량 선택 (개별 선택 또는 전체 선택)
             </label>
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 6px; border: 1px solid #334155;">
-                <label style="cursor: pointer; font-weight: 700; color: #4ade80; display: flex; align-items: center; gap: 6px;">
-                    <input type="checkbox" id="chk-all-vehicles" onchange="toggleSelectAllVehicles(this)" checked style="width:16px; height:16px; cursor:pointer;">
+            <div
+                style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 6px; border: 1px solid #334155;">
+                <label
+                    style="cursor: pointer; font-weight: 700; color: #4ade80; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="chk-all-vehicles" onchange="toggleSelectAllVehicles(this)" checked
+                        style="width:16px; height:16px; cursor:pointer;">
                     ✨ 전체 차량 선택
                 </label>
                 <div style="width: 1px; height: 20px; background: #475569;"></div>
                 {% for v in all_vehicles %}
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; color: #f1f5f9; font-weight: 600;">
-                    <input type="checkbox" name="vehicle_ids" value="{{ v.id }}" class="chk-vehicle-item" checked style="width:15px; height:15px; cursor:pointer;">
+                <label
+                    style="cursor: pointer; display: flex; align-items: center; gap: 6px; color: #f1f5f9; font-weight: 600;">
+                    <input type="checkbox" name="vehicle_ids" value="{{ v.id }}" class="chk-vehicle-item" checked
+                        style="width:15px; height:15px; cursor:pointer;">
                     🚘 {{ v.name }}
                 </label>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- 2. 날짜 범위 지정 -->
+        <!-- 2. 날짜 범위 지정 (선택 사항) -->
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">시작일자 (Start Date)</label>
+                <label class="form-label">시작일자 <span style="font-weight:normal; color:#94a3b8; font-size:11px;">(미선택 시 과거 전체 출력)</span></label>
                 <input type="date" name="start_date" id="export_start_date" class="form-control">
             </div>
             <div class="form-group">
-                <label class="form-label">종료일자 (End Date)</label>
+                <label class="form-label">종료일자 <span style="font-weight:normal; color:#94a3b8; font-size:11px;">(미선택 시 과거 전체 출력)</span></label>
                 <input type="date" name="end_date" id="export_end_date" class="form-control">
             </div>
         </div>
         <div class="btn-group mt-3" style="text-align: right;">
-            <button type="submit" class="btn btn-primary" style="background: #0284c7; padding: 8px 24px; font-weight: 700;">📥 선택한 차량 및 기간 엑셀 보고서 다운로드</button>
+            <button type="submit" class="btn btn-primary"
+                style="background: #0284c7; padding: 8px 24px; font-weight: 700;">📥 선택한 차량 및 기간 엑셀 보고서 다운로드</button>
             <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()">취소</button>
         </div>
     </form>
@@ -269,8 +293,8 @@
 <!-- 1. 차량 선택 탭 목록 (엑셀 하단 시트 탭 느낌) -->
 <div class="vehicle-tab-container">
     {% for v in all_vehicles %}
-    <a href="{{ url_for('vehicle.view_log', vehicle_id=v.id) }}" 
-       class="vehicle-tab {{ 'active' if v.id == current_vehicle.id }}">
+    <a href="{{ url_for('vehicle.view_log', vehicle_id=v.id) }}"
+        class="vehicle-tab {{ 'active' if v.id == current_vehicle.id }}">
         🚘 {{ v.name }}
     </a>
     {% endfor %}
@@ -314,7 +338,8 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">차량 번호</label>
-                    <input type="text" name="plate_number" class="form-control" value="{{ current_vehicle.plate_number }}" required>
+                    <input type="text" name="plate_number" class="form-control"
+                        value="{{ current_vehicle.plate_number }}" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">유종</label>
@@ -334,9 +359,12 @@
         <hr style="border-color: #334155; margin: 16px 0;">
 
         <div style="text-align: right;">
-            <form method="POST" action="{{ url_for('vehicle.delete_vehicle', vehicle_id=current_vehicle.id) }}" style="display:inline;" onsubmit="return confirm('🚨 이 차량([{{ current_vehicle.name }}]) 및 모든 운행일지 기록을 정말 완전 삭제하시겠습니까?')">
+            <form method="POST" action="{{ url_for('vehicle.delete_vehicle', vehicle_id=current_vehicle.id) }}"
+                style="display:inline;"
+                onsubmit="return confirm('🚨 이 차량([{{ current_vehicle.name }}]) 및 모든 운행일지 기록을 정말 완전 삭제하시겠습니까?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-danger" style="background:#ef4444; border-color:#dc2626;">🗑️ 이 차량 탭 완전 삭제</button>
+                <button type="submit" class="btn btn-danger" style="background:#ef4444; border-color:#dc2626;">🗑️ 이 차량
+                    탭 완전 삭제</button>
             </form>
         </div>
     </div>
@@ -347,24 +375,27 @@
 
 <!-- 3. 경고문 및 알림 메시지 (운행일지 작성 폼 바로 위에 띄움) -->
 {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="flash-messages mb-3" style="margin-bottom: 20px;">
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}" style="font-size: 15px; padding: 14px 18px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 2px solid {{ '#ef4444' if category == 'danger' else '#f59e0b' if category == 'warning' else '#10b981' }};">
-            {{ message }}
-        </div>
-        {% endfor %}
+{% if messages %}
+<div class="flash-messages mb-3" style="margin-bottom: 20px;">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}"
+        style="font-size: 15px; padding: 14px 18px; border-radius: 8px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 2px solid {{ '#ef4444' if category == 'danger' else '#f59e0b' if category == 'warning' else '#10b981' }};">
+        {{ message }}
     </div>
-    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
 {% endwith %}
 
 <!-- 3. 운행일지 작성 폼 -->
 <div class="log-input-card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-        <h3 style="font-size: 13px; font-weight: 800; color: #0284c7; margin: 0; display: flex; align-items: center; gap: 6px;">
-            ✍️ 신규 운행일지 기록 폼
+        <h3
+            style="font-size: 13px; font-weight: 800; color: #0284c7; margin: 0; display: flex; align-items: center; gap: 6px;">
+            ✍️ 신규 운행일지 기록
         </h3>
-        <button type="submit" form="frm-add-log" class="btn btn-primary" style="padding: 4px 14px; font-size: 12px; font-weight: 700;">
+        <button type="submit" form="frm-add-log" class="btn btn-primary"
+            style="padding: 4px 14px; font-size: 12px; font-weight: 700;">
             ➕ 운행일지 기록 저장
         </button>
     </div>
@@ -374,59 +405,63 @@
         <div class="compact-form-grid">
             <div class="form-group">
                 <label class="form-label">② 시작시간 *</label>
-                <input type="text" name="start_time" class="form-control datetime-picker" id="inp-start-time" 
-                       value="{{ form_data.get('start_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required readonly style="cursor: pointer;">
+                <input type="text" name="start_time" class="form-control datetime-picker" id="inp-start-time"
+                    value="{{ form_data.get('start_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required
+                    readonly style="cursor: pointer;">
             </div>
             <div class="form-group">
                 <label class="form-label">③ 종료시간 *</label>
-                <input type="text" name="end_time" class="form-control datetime-picker" id="inp-end-time" 
-                       value="{{ form_data.get('end_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required readonly style="cursor: pointer;">
+                <input type="text" name="end_time" class="form-control datetime-picker" id="inp-end-time"
+                    value="{{ form_data.get('end_time', '') if form_data else '' }}" placeholder="시간 선택 [확인]" required
+                    readonly style="cursor: pointer;">
             </div>
 
             <div class="form-group">
                 <label class="form-label">④ 부서</label>
-                <input type="text" name="department" class="form-control" 
-                       value="{{ form_data.get('department', '') if form_data else '' }}" placeholder="예: 국제협력국">
+                <input type="text" name="department" class="form-control"
+                    value="{{ form_data.get('department', '') if form_data else '' }}" placeholder="예: 국제협력국">
             </div>
             <div class="form-group">
                 <label class="form-label">④ 신청자 *</label>
-                <input type="text" name="applicant" class="form-control" 
-                       value="{{ form_data.get('applicant', '') if form_data else '' }}" placeholder="신청자 성명" required>
+                <input type="text" name="applicant" class="form-control"
+                    value="{{ form_data.get('applicant', '') if form_data else '' }}" placeholder="신청자 성명" required>
             </div>
             <div class="form-group">
                 <label class="form-label">④ 운전자</label>
-                <input type="text" name="driver" class="form-control" 
-                       value="{{ form_data.get('driver', '') if form_data else '' }}" placeholder="운전자 성명">
+                <input type="text" name="driver" class="form-control"
+                    value="{{ form_data.get('driver', '') if form_data else '' }}" placeholder="운전자 성명">
             </div>
 
             <div class="form-group">
                 <label class="form-label">⑤ 주행 전 (km)</label>
-                <input type="number" step="0.1" name="start_distance" id="inp_start_dist" class="form-control" 
-                       value="{{ form_data.get('start_distance', default_start_distance) if form_data else default_start_distance }}" oninput="calcDistances()" required>
+                <input type="number" step="0.1" name="start_distance" id="inp_start_dist" class="form-control"
+                    value="{{ form_data.get('start_distance', default_start_distance) if form_data else default_start_distance }}"
+                    oninput="calcDistances()" required>
             </div>
 
             <div class="form-group">
                 <label class="form-label">⑥ 주행거리 (km)</label>
-                <input type="number" step="0.1" name="distance" id="inp_distance" class="form-control" 
-                       value="{{ form_data.get('distance', '') if form_data else '' }}" placeholder="도착 후 기입" oninput="calcDistances()">
+                <input type="number" step="0.1" name="distance" id="inp_distance" class="form-control"
+                    value="{{ form_data.get('distance', '') if form_data else '' }}" placeholder="도착 후 기입"
+                    oninput="calcDistances()">
             </div>
 
             <div class="form-group">
                 <label class="form-label">⑦ 주행 후 (km)</label>
-                <input type="text" id="inp_end_dist" class="form-control" 
-                       placeholder="자동계산" readonly style="background: #f8fafc; font-weight:700; color:#0284c7;">
+                <input type="text" id="inp_end_dist" class="form-control" placeholder="자동계산" readonly
+                    style="background: #f8fafc; font-weight:700; color:#0284c7;">
             </div>
 
             <div class="form-group">
                 <label class="form-label">⑧ 용도 / 사유</label>
-                <input type="text" name="purpose" class="form-control" 
-                       value="{{ form_data.get('purpose', '') if form_data else '' }}" placeholder="예: 업무 외근">
+                <input type="text" name="purpose" class="form-control"
+                    value="{{ form_data.get('purpose', '') if form_data else '' }}" placeholder="예: 업무 외근">
             </div>
 
             <div class="form-group">
                 <label class="form-label">비고</label>
-                <input type="text" name="notes" class="form-control" 
-                       value="{{ form_data.get('notes', '') if form_data else '' }}" placeholder="충전/이상유무">
+                <input type="text" name="notes" class="form-control"
+                    value="{{ form_data.get('notes', '') if form_data else '' }}" placeholder="충전/이상유무">
             </div>
         </div>
     </form>
@@ -441,8 +476,10 @@
                 <th rowspan="2">③ 종료시간</th>
                 <th colspan="3">④ 사용자</th>
                 <th colspan="3">운행 내역</th>
-                <th rowspan="2">⑧ 용도<br><span style="font-size:10px; font-weight:normal; color:#94a3b8;">구체적 사유</span></th>
-                <th rowspan="2">비고<br><span style="font-size:10px; font-weight:normal; color:#94a3b8;">충전/사고여부</span></th>
+                <th rowspan="2">⑧ 용도<br><span style="font-size:10px; font-weight:normal; color:#94a3b8;">구체적 사유</span>
+                </th>
+                <th rowspan="2">비고<br><span style="font-size:10px; font-weight:normal; color:#94a3b8;">충전/사고여부</span>
+                </th>
                 <th rowspan="2">작업</th>
             </tr>
             <tr>
@@ -456,60 +493,76 @@
         </thead>
         <tbody>
             {% if logs %}
-                {% for log in logs %}
-                <tr>
-                    <td style="color: #cbd5e1; font-size:12px;">{{ log.start_time or '-' }}</td>
-                    <td style="color: #cbd5e1; font-size:12px;">{{ log.end_time or '-' }}</td>
-                    <td>{{ log.department or '-' }}</td>
-                    <td style="font-weight: 600; color: #f8fafc;">{{ log.applicant or '-' }}</td>
-                    <td>{{ log.driver or '-' }}</td>
-                    {% if ready_map and ready_map.get(log.id) %}
-                    <td style="font-family: monospace; color: #94a3b8;">{{ "{:,.0f}".format(log.start_distance) if log.start_distance else '0' }}</td>
+            {% for log in logs %}
+            <tr>
+                <td style="color: #cbd5e1; font-size:12px;">{{ log.start_time or '-' }}</td>
+                <td style="color: #cbd5e1; font-size:12px;">{{ log.end_time or '-' }}</td>
+                <td>{{ log.department or '-' }}</td>
+                <td style="font-weight: 600; color: #f8fafc;">{{ log.applicant or '-' }}</td>
+                <td>{{ log.driver or '-' }}</td>
+                {% if ready_map and ready_map.get(log.id) %}
+                <td style="font-family: monospace; color: #94a3b8;">{{ "{:,.0f}".format(log.start_distance) if
+                    log.start_distance else '0' }}</td>
+                {% else %}
+                <td
+                    style="color: #94a3b8; font-size: 11px; font-weight: 500; background: rgba(148, 163, 184, 0.05); border-radius: 4px;">
+                    -[이전 운행 마감 대기]-</td>
+                {% endif %}
+                {% if log.distance and log.distance > 0 %}
+                <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance)
+                    }}</td>
+                <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{
+                    "{:,.0f}".format(log.end_distance) }}</td>
+                {% else %}
+                <td style="color: #64748b; font-size: 11px;">-</td>
+                {% if log.start_time and now_str < log.start_time %} <td
+                    style="color: #60a5fa; font-size: 11px; font-weight: 600; background: rgba(96, 165, 250, 0.1); border-radius: 4px;">
+                    -[사용 전]-</td>
+                    {% elif log.end_time and now_str > log.end_time %}
+                    <td
+                        style="color: #f87171; font-size: 11px; font-weight: 600; background: rgba(248, 113, 113, 0.1); border-radius: 4px;">
+                        -[거리 미입력]-</td>
                     {% else %}
-                    <td style="color: #94a3b8; font-size: 11px; font-weight: 500; background: rgba(148, 163, 184, 0.05); border-radius: 4px;">-[이전 운행 마감 대기]-</td>
+                    <td
+                        style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">
+                        -[운행 중]-</td>
                     {% endif %}
-                    {% if log.distance and log.distance > 0 %}
-                    <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) }}</td>
-                    <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) }}</td>
-                    {% else %}
-                        <td style="color: #64748b; font-size: 11px;">-</td>
-                        {% if log.start_time and now_str < log.start_time %}
-                        <td style="color: #60a5fa; font-size: 11px; font-weight: 600; background: rgba(96, 165, 250, 0.1); border-radius: 4px;">-[사용 전]-</td>
-                        {% elif log.end_time and now_str > log.end_time %}
-                        <td style="color: #f87171; font-size: 11px; font-weight: 600; background: rgba(248, 113, 113, 0.1); border-radius: 4px;">-[거리 미입력]-</td>
-                        {% else %}
-                        <td style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">-[운행 중]-</td>
-                        {% endif %}
                     {% endif %}
-                    <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.purpose or '-' }}</td>
+                    <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{
+                        log.purpose or '-' }}</td>
                     <td>{{ log.notes or '-' }}</td>
                     <td>
-                        {% if current_user.is_admin or current_user.is_vehicle_manager or log.registered_by == current_user.id %}
-                        <button type="button" class="btn btn-sm btn-secondary" style="padding: 2px 8px; font-size:11px; margin-right:4px;"
-                                onclick="openLogItemEditModal({{ log.id }}, '{{ log.start_time or '' }}', '{{ log.end_time or '' }}', '{{ log.applicant or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}')">
+                        {% if current_user.is_admin or current_user.is_vehicle_manager or log.registered_by ==
+                        current_user.id %}
+                        <button type="button" class="btn btn-sm btn-secondary"
+                            style="padding: 2px 8px; font-size:11px; margin-right:4px;"
+                            onclick="openLogItemEditModal({{ log.id }}, '{{ log.start_time or '' }}', '{{ log.end_time or '' }}', '{{ log.applicant or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}')">
                             수정
                         </button>
-                        <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}" style="display:inline;">
+                        <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}"
+                            style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger" style="padding: 2px 6px; font-size:11px;" 
-                                    onclick="return confirm('이 운행일지 기록을 삭제하시겠습니까?')">삭제</button>
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                style="padding: 2px 6px; font-size:11px;"
+                                onclick="return confirm('이 운행일지 기록을 삭제하시겠습니까?')">삭제</button>
                         </form>
                         {% endif %}
                     </td>
-                </tr>
-                {% endfor %}
+            </tr>
+            {% endfor %}
             {% else %}
-                <tr>
-                    <td colspan="11" style="padding: 40px; color: #64748b; font-size: 14px;">
-                        등록된 운행일지 기록이 없습니다. 상단 폼에서 신규 일지를 입력해 보세요!
-                    </td>
-                </tr>
+            <tr>
+                <td colspan="11" style="padding: 40px; color: #64748b; font-size: 14px;">
+                    등록된 운행일지 기록이 없습니다. 상단 폼에서 신규 일지를 입력해 보세요!
+                </td>
+            </tr>
             {% endif %}
         </tbody>
         <tfoot>
             <tr style="background: #1e293b; font-weight: 700;">
                 <td colspan="7" style="text-align: right; color: #cbd5e1;">월별 / 전체 누적 주행거리 합산:</td>
-                <td style="color: #4ade80; font-size: 15px; font-family: monospace;">{{ "{:,.0f}".format(total_distance) }} km</td>
+                <td style="color: #4ade80; font-size: 15px; font-family: monospace;">{{ "{:,.0f}".format(total_distance)
+                    }} km</td>
                 <td colspan="3"></td>
             </tr>
         </tfoot>
@@ -523,9 +576,10 @@
     <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=pagination.prev_num) }}">← 이전</a>
     {% endif %}
     {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-        {% if page_num %}
-            <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=page_num) }}" class="{{ 'active' if page_num == pagination.page }}">{{ page_num }}</a>
-        {% endif %}
+    {% if page_num %}
+    <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=page_num) }}"
+        class="{{ 'active' if page_num == pagination.page }}">{{ page_num }}</a>
+    {% endif %}
     {% endfor %}
     {% if pagination.has_next %}
     <a href="{{ url_for('vehicle.view_log', vehicle_id=current_vehicle.id, page=pagination.next_num) }}">다음 →</a>
@@ -534,7 +588,8 @@
 {% endif %}
 
 <!-- 5. 운행일지 리스트 항목 수정 팝업/모달 (종료시간, 운전자, 주행거리, 용도, 비고) -->
-<div id="log-item-edit-panel" class="card" style="display: none; border: 2px solid var(--accent-primary); margin-top: 24px;">
+<div id="log-item-edit-panel" class="card"
+    style="display: none; border: 2px solid var(--accent-primary); margin-top: 24px;">
     <div class="card-header" style="background: #1e293b; color: #f8fafc;">
         <h3 class="card-title">✏️ 운행일지 기록 수정 (도착 후 주행거리 / 종료시간 / 용도 입력)</h3>
     </div>
@@ -543,11 +598,13 @@
         <div class="form-grid">
             <div class="form-group">
                 <label class="form-label">② 시작시간 (캘린더 & 시간 선택 후 [확인] 클릭)</label>
-                <input type="text" name="start_time" id="edit_start_time" class="form-control datetime-picker" placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
+                <input type="text" name="start_time" id="edit_start_time" class="form-control datetime-picker"
+                    placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
             </div>
             <div class="form-group">
                 <label class="form-label">③ 종료시간 (캘린더 & 시간 선택 후 [확인] 클릭)</label>
-                <input type="text" name="end_time" id="edit_end_time" class="form-control datetime-picker" placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
+                <input type="text" name="end_time" id="edit_end_time" class="form-control datetime-picker"
+                    placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
             </div>
             <div class="form-group">
                 <label class="form-label">④ 신청자 성명</label>
@@ -559,11 +616,13 @@
             </div>
             <div class="form-group">
                 <label class="form-label">⑥ 주행거리 (km)</label>
-                <input type="number" step="0.1" name="distance" id="edit_distance" class="form-control" placeholder="도착 후 주행거리 (km)">
+                <input type="number" step="0.1" name="distance" id="edit_distance" class="form-control"
+                    placeholder="도착 후 주행거리 (km)">
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label class="form-label">⑧ 용도 / 구체적 사유</label>
-                <input type="text" name="purpose" id="edit_purpose" class="form-control" placeholder="예: 외근, 외부손님 이동, 업무 미팅 등">
+                <input type="text" name="purpose" id="edit_purpose" class="form-control"
+                    placeholder="예: 외근, 외부손님 이동, 업무 미팅 등">
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label class="form-label">비고 (충전필요, 사고여부 등)</label>
@@ -722,33 +781,20 @@
             }
         }
 
-        const dateStrToday = `${year}-${month}-${day}`;
-        const dateStrFirst = `${year}-${month}-01`;
-
-        const expStartInp = document.getElementById('export_start_date');
-        if (expStartInp && !expStartInp.value) {
-            expStartInp.value = dateStrFirst;
-        }
-
-        const expEndInp = document.getElementById('export_end_date');
-        if (expEndInp && !expEndInp.value) {
-            expEndInp.value = dateStrToday;
-        }
-
         calcDistances();
 
         {% if edit_form_data and edit_log_id %}
         openLogItemEditModal(
             {{ edit_log_id }},
-            '{{ edit_form_data.get("start_time", "") }}',
-            '{{ edit_form_data.get("end_time", "") }}',
-            '{{ edit_form_data.get("applicant", "") }}',
-            '{{ edit_form_data.get("driver", "") }}',
-            '{{ edit_form_data.get("distance", "0") }}',
-            '{{ edit_form_data.get("purpose", "") }}',
-            '{{ edit_form_data.get("notes", "") }}'
-        );
-        {% endif %}
+        '{{ edit_form_data.get("start_time", "") }}',
+        '{{ edit_form_data.get("end_time", "") }}',
+        '{{ edit_form_data.get("applicant", "") }}',
+        '{{ edit_form_data.get("driver", "") }}',
+        '{{ edit_form_data.get("distance", "0") }}',
+        '{{ edit_form_data.get("purpose", "") }}',
+        '{{ edit_form_data.get("notes", "") }}'
+    );
+    {% endif %}
     });
 </script>
 {% endblock %}
