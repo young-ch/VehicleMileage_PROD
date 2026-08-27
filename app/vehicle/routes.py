@@ -297,6 +297,36 @@ def update_vehicle_info(vehicle_id):
     return redirect(url_for('vehicle.view_log', vehicle_id=vehicle.id))
 
 
+@vehicle_bp.route('/<int:vehicle_id>/delete-vehicle', methods=['POST'])
+@login_required
+@permission_required('vehicle_manage')
+def delete_vehicle(vehicle_id):
+    """차량관리자/관리자 전용: 등록된 차량(탭) 완전 삭제"""
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+
+    active_count = Vehicle.query.filter_by(is_active=True).count()
+    if active_count <= 1:
+        flash('최소 1개 이상의 차량 탭이 유지되어야 하므로 삭제할 수 없습니다.', 'warning')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+    v_name = vehicle.name
+    v_plate = vehicle.plate_number
+
+    # 차량 및 연관된 운행일지 기록 삭제
+    VehicleLog.query.filter_by(vehicle_id=vehicle_id).delete()
+    db.session.delete(vehicle)
+    db.session.commit()
+
+    log_audit('DELETE', 'vehicles', vehicle_id, old_values={'name': v_name, 'plate_number': v_plate})
+
+    flash(f"차량 '{v_name}'({v_plate}) 및 관련 운행일지 전체가 완전히 삭제되었습니다.", 'danger')
+
+    next_vehicle = Vehicle.query.filter_by(is_active=True).first()
+    if next_vehicle:
+        return redirect(url_for('vehicle.view_log', vehicle_id=next_vehicle.id))
+    return redirect(url_for('main.dashboard'))
+
+
 @vehicle_bp.route('/<int:vehicle_id>/export-excel', methods=['GET', 'POST'])
 @login_required
 def export_excel(vehicle_id):

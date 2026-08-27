@@ -265,9 +265,15 @@
                 <input type="text" name="notice" class="form-control" value="{{ current_vehicle.notice }}">
             </div>
         </div>
-        <div class="btn-group mt-2">
-            <button type="submit" class="btn btn-primary">💾 관리자 설정 저장</button>
-            <button type="button" class="btn btn-secondary" onclick="toggleAdminEditModal()">취소</button>
+        <div class="btn-group mt-2" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div>
+                <button type="submit" class="btn btn-primary">💾 관리자 설정 저장</button>
+                <button type="button" class="btn btn-secondary" onclick="toggleAdminEditModal()">취소</button>
+            </div>
+            <form method="POST" action="{{ url_for('vehicle.delete_vehicle', vehicle_id=current_vehicle.id) }}" style="display:inline;" onsubmit="return confirm('🚨 이 차량([{{ current_vehicle.name }}]) 및 모든 운행일지 기록을 정말 완전 삭제하시겠습니까?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger" style="background:#ef4444; border-color:#dc2626;">🗑️ 이 차량 탭 완전 삭제</button>
+            </form>
         </div>
     </form>
 </div>
