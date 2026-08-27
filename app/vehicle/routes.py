@@ -638,16 +638,22 @@ def export_excel(vehicle_id=None):
         sum_val_cell.alignment = Alignment(horizontal='right', vertical='center')
         ws.row_dimensions[current_row].height = 24
 
-        # 열 너비 자동 조정
+        # 열 너비 자동 조정 (한글 폰트 크기를 감안하여 좀 더 넉넉하게 보정)
         for col in ws.columns:
             max_len = 0
             col_letter = get_column_letter(col[0].column)
             for cell in col:
                 val_str = str(cell.value or '')
-                len_count = len(val_str.encode('utf-8'))
-                if len_count > max_len:
-                    max_len = len_count
-            ws.column_dimensions[col_letter].width = max(max_len + 4, 13)
+                # 한글은 영문보다 폭을 많이 차지하므로 가중치 적용
+                char_len = 0
+                for char in val_str:
+                    if ord(char) > 127: # 한글/특수문자
+                        char_len += 2.2
+                    else:
+                        char_len += 1.0
+                if char_len > max_len:
+                    max_len = char_len
+            ws.column_dimensions[col_letter].width = max(max_len + 5, 14)
 
     # 기본 생성된 빈 시트 제거
     if default_sheet in wb.worksheets and len(wb.worksheets) > 1:
