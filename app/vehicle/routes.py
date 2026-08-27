@@ -181,31 +181,35 @@ def edit_log(log_id):
         flash('본인이 등록한 일지 또는 차량관리자만 수정할 수 있습니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
-    new_end_time = request.form.get('end_time', '').strip().replace('T', ' ')
-    start_time = log_item.start_time
+    new_start_time = request.form.get('start_time', '').strip().replace('T', ' ') or log_item.start_time
+    new_end_time = request.form.get('end_time', '').strip().replace('T', ' ') or log_item.end_time
 
     # 수정 시 시간 검증 및 중복 검증
-    if new_end_time:
-        if new_end_time <= start_time:
-            flash('⚠️ 입력 오류: 종료시간은 시작시간보다 이전이거나 같을 수 없습니다.', 'danger')
-            return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+    if new_end_time <= new_start_time:
+        flash('⚠️ 입력 오류: 종료시간은 시작시간보다 이전이거나 같을 수 없습니다.', 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
-        now_date_str = date.today().strftime('%Y-%m-%d')
-        if new_end_time[:10] < now_date_str:
-            flash(f"⚠️ 입력 오류: 현재 날짜({now_date_str})보다 이전 날짜로는 수정할 수 없습니다.", 'danger')
-            return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+    now_date_str = date.today().strftime('%Y-%m-%d')
+    if new_start_time[:10] < now_date_str:
+        flash(f"⚠️ 입력 오류: 현재 날짜({now_date_str})보다 이전 날짜로는 수정할 수 없습니다. (선택날짜: {new_start_time[:10]})", 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
-        overlap_log = check_time_overlap(vehicle_id, start_time, new_end_time, exclude_log_id=log_id)
-        if overlap_log:
-            reserved_name = overlap_log.applicant or overlap_log.driver or '사용자미상'
-            dept_str = f" ({overlap_log.department})" if overlap_log.department else ""
-            flash(
-                f"🚨 수정 불가 (시간 중복): [{vehicle.name}] 차량은 이미 [{reserved_name}{dept_str}] 님이 "
-                f"'{overlap_log.start_time} ~ {overlap_log.end_time}' 시간대에 예약/운행 중입니다.",
-                'danger'
-            )
-            return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
-        log_item.end_time = new_end_time
+    overlap_log = check_time_overlap(vehicle_id, new_start_time, new_end_time, exclude_log_id=log_id)
+    if overlap_log:
+        reserved_name = overlap_log.applicant or overlap_log.driver or '사용자미상'
+        dept_str = f" ({overlap_log.department})" if overlap_log.department else ""
+        flash(
+            f"🚨 수정 불가 (시간 중복): [{vehicle.name}] 차량은 이미 [{reserved_name}{dept_str}] 님이 "
+            f"'{overlap_log.start_time} ~ {overlap_log.end_time}' 시간대에 예약/운행 중입니다.",
+            'danger'
+        )
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+    log_item.start_time = new_start_time
+    log_item.end_time = new_end_time
+
+    if 'applicant' in request.form and request.form.get('applicant', '').strip():
+        log_item.applicant = request.form.get('applicant', '').strip()
 
     if 'driver' in request.form:
         log_item.driver = request.form.get('driver', '').strip()

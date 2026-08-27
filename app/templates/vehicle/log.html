@@ -420,7 +420,7 @@
                     <td>
                         {% if current_user.is_admin or current_user.is_vehicle_manager or log.registered_by == current_user.id %}
                         <button type="button" class="btn btn-sm btn-secondary" style="padding: 2px 8px; font-size:11px; margin-right:4px;"
-                                onclick="openLogItemEditModal({{ log.id }}, '{{ log.end_time or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}')">
+                                onclick="openLogItemEditModal({{ log.id }}, '{{ log.start_time or '' }}', '{{ log.end_time or '' }}', '{{ log.applicant or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}')">
                             수정
                         </button>
                         <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}" style="display:inline;">
@@ -476,8 +476,16 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-grid">
             <div class="form-group">
+                <label class="form-label">② 시작시간 (캘린더 & 시간 선택 후 [확인] 클릭)</label>
+                <input type="text" name="start_time" id="edit_start_time" class="form-control datetime-picker" placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
+            </div>
+            <div class="form-group">
                 <label class="form-label">③ 종료시간 (캘린더 & 시간 선택 후 [확인] 클릭)</label>
                 <input type="text" name="end_time" id="edit_end_time" class="form-control datetime-picker" placeholder="날짜 및 시간 선택 후 [확인] 클릭" readonly style="cursor: pointer; background: var(--bg-card);">
+            </div>
+            <div class="form-group">
+                <label class="form-label">④ 신청자 성명</label>
+                <input type="text" name="applicant" id="edit_applicant" class="form-control" placeholder="신청자 성명">
             </div>
             <div class="form-group">
                 <label class="form-label">④ 운전자 성명</label>
@@ -487,7 +495,7 @@
                 <label class="form-label">⑦ 주행거리 (km)</label>
                 <input type="number" step="0.1" name="distance" id="edit_distance" class="form-control" placeholder="도착 후 주행거리 (km)">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="grid-column: span 2;">
                 <label class="form-label">⑧ 용도 / 구체적 사유</label>
                 <input type="text" name="purpose" id="edit_purpose" class="form-control" placeholder="예: 외근, 외부손님 이동, 업무 미팅 등">
             </div>
@@ -548,21 +556,31 @@
     }
 
     // 리스트 항목 수정 모달 열기
-    function openLogItemEditModal(id, endTime, driver, distance, purpose, notes) {
+    function openLogItemEditModal(id, startTime, endTime, applicant, driver, distance, purpose, notes) {
         const panel = document.getElementById('log-item-edit-panel');
         const form = document.getElementById('log-edit-form');
 
         if (panel && form) {
             form.action = `/vehicle/log/${id}/edit`;
 
+            const cleanStartTime = startTime ? startTime.replace('T', ' ') : '';
             const cleanEndTime = endTime ? endTime.replace('T', ' ') : '';
-            const editInp = document.getElementById('edit_end_time');
-            if (editInp && editInp._flatpickr) {
-                editInp._flatpickr.setDate(cleanEndTime);
-            } else if (editInp) {
-                editInp.value = cleanEndTime;
+
+            const startInp = document.getElementById('edit_start_time');
+            if (startInp && startInp._flatpickr) {
+                startInp._flatpickr.setDate(cleanStartTime);
+            } else if (startInp) {
+                startInp.value = cleanStartTime;
             }
 
+            const endInp = document.getElementById('edit_end_time');
+            if (endInp && endInp._flatpickr) {
+                endInp._flatpickr.setDate(cleanEndTime);
+            } else if (endInp) {
+                endInp.value = cleanEndTime;
+            }
+
+            document.getElementById('edit_applicant').value = applicant || '';
             document.getElementById('edit_driver').value = driver || '';
             document.getElementById('edit_distance').value = (distance && distance !== '0') ? distance : '';
             document.getElementById('edit_purpose').value = purpose || '';
