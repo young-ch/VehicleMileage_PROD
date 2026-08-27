@@ -54,9 +54,12 @@ def kanban_board():
     
     for issue in all_issues:
         status = (issue.status or '').strip().lower()
-        if status in ('진행', 'in progress', 'inprogress'):
+        # '종료' 또는 'closed' 상태인 이슈는 칸반보드에서 숨김 (목록 뷰에는 유지)
+        if status in ('종료', 'closed'):
+            continue
+        elif status in ('진행', 'in progress', 'inprogress'):
             inprogress.append(issue)
-        elif status in ('완료', 'done', 'closed', 'resolved'):
+        elif status in ('완료', 'done', 'resolved'):
             done.append(issue)
         elif status in ('보류', 'hold', 'on hold'):
             hold.append(issue)
@@ -260,6 +263,10 @@ def edit(id):
         issue.sprint = None
         issue.epic = None
         
+        # '종료' 상태로 변경되었는데 해결일이 없는 경우 오늘 날짜로 자동 기록
+        if (issue.status or '').strip().lower() in ('종료', 'closed') and not issue.resolved_date:
+            issue.resolved_date = date.today()
+        
         log_audit('UPDATE', 'jira_issues', issue.id,
                   old_values=old_values, new_values=issue.to_dict())
         db.session.commit()
@@ -268,6 +275,39 @@ def edit(id):
         return redirect(url_for('jira.kanban_board'))
     
     return render_template('jira/detail.html', form=form, issue=issue, mode='edit')
+
+
+@jira_bp.route('/<int:id>/close', methods=['POST'])
+@login_required
+@permission_required('jira_edit')
+def close_issue(id):
+    """이슈종료 버튼 클릭 시 빠른 종료 처리 (칸반보드에서는 숨겨지고 목록 뷰에는 유지)"""
+    issue = JiraIssue.query.get_or_404(id)
+    
+    # 보안 검증: 관리자, 담당자, 또는 (미배정 & 생성자)만 허용
+    is_authorized = False
+    if current_user.is_admin:
+        is_authorized = True
+    elif issue.assignee_id == current_user.id:
+        is_authorized = True
+    elif issue.assignee_id is None and issue.registered_by == current_user.id:
+        is_authorized = True
+        
+    if not is_authorized:
+        flash('해당 이슈를 종료할 권한이 없습니다.', 'danger')
+        return redirect(url_for('jira.kanban_board'))
+        
+    old_values = issue.to_dict()
+    issue.status = '종료'
+    if not issue.resolved_date:
+        issue.resolved_date = date.today()
+        
+    log_audit('UPDATE', 'jira_issues', issue.id,
+              old_values=old_values, new_values=issue.to_dict())
+    db.session.commit()
+    
+    flash(f'{issue.jira_key} 이슈가 종료되었습니다. (칸반보드에서 제외되고 목록 뷰에 저장됩니다)', 'info')
+    return redirect(url_for('jira.kanban_board'))
 
 
 @jira_bp.route('/<int:id>/delete', methods=['POST'])

@@ -29,6 +29,7 @@ class JiraIssueForm(FlaskForm):
         ('진행', '진행'),
         ('보류', '보류'),
         ('완료', '완료'),
+        ('종료', '종료'),
     ])
     assignee_id = SelectField('담당자', coerce=int, validators=[Optional()])
     reporter = StringField('보고자', validators=[Optional(), Length(max=100)])

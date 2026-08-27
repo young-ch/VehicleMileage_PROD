@@ -72,5 +72,15 @@
             <a href="{{ url_for('jira.kanban_board') }}" class="btn btn-secondary">취소</a>
         </div>
     </form>
+    {% if mode == 'edit' %}
+    <div style="margin-top: -38px; display: flex; justify-content: flex-end;">
+        <form method="POST" action="{{ url_for('jira.close_issue', id=issue.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger" style="background-color: #6c757d; border-color: #6c757d;" onclick="return confirm('이 이슈를 종료 처리하시겠습니까?\n(종료 처리 시 칸반보드에서는 제외되고 목록 뷰에만 보존됩니다)')">
+                🚫 이슈종료 (칸반 숨김)
+            </button>
+        </form>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

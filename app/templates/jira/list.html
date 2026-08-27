@@ -22,7 +22,7 @@
         </div>
         <select name="status" class="form-control" style="max-width: 160px;">
             <option value="">전체 상태</option>
-            {% for s in ['Open', 'In Progress', 'To Do', 'Resolved', 'Closed', 'Done'] %}
+            {% for s in ['시작전', '진행', '보류', '완료', '종료', 'Open', 'In Progress', 'To Do', 'Resolved', 'Closed', 'Done'] %}
             <option value="{{ s }}" {{ 'selected' if status_filter == s }}>{{ s }}</option>
             {% endfor %}
         </select>
@@ -76,7 +76,7 @@
                     </span>
                 </td>
                 <td>
-                    <span class="badge {% if issue.status in ['Open', 'To Do'] %}badge-info{% elif issue.status == 'In Progress' %}badge-warning{% elif issue.status in ['Resolved', 'Done', 'Closed'] %}badge-success{% else %}badge-muted{% endif %}">
+                    <span class="badge {% if issue.status in ['시작전', 'Open', 'To Do'] %}badge-info{% elif issue.status in ['진행', 'In Progress'] %}badge-warning{% elif issue.status in ['완료', 'Resolved', 'Done'] %}badge-success{% elif issue.status in ['종료', 'Closed'] %}badge-muted{% else %}badge-muted{% endif %}">
                         {{ issue.status }}
                     </span>
                 </td>

@@ -89,12 +89,29 @@
     <div class="kanban-card-title" style="color: var(--text-white);">
         {{ issue.summary }}
     </div>
+
+    <!-- 마감일 / 해결일 표시 영역 -->
+    {% if issue.due_date or issue.resolved_date %}
+    <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; margin-bottom: 4px;">
+        {% if issue.due_date %}
+        <span class="badge badge-warning" style="font-size: 10px; padding: 2px 6px;" title="마감일">
+            📅 마감: {{ issue.due_date.strftime('%Y-%m-%d') }}
+        </span>
+        {% endif %}
+        {% if issue.resolved_date %}
+        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;" title="해결일">
+            ✅ 해결: {{ issue.resolved_date.strftime('%Y-%m-%d') }}
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="kanban-card-footer">
         <div class="kanban-card-assignee">
             <div class="kanban-card-avatar">{{ issue.assignee_name[0] }}</div>
             <span>{{ issue.assignee_name }}</span>
         </div>
-        <span style="font-size: 10px; color: var(--text-muted); font-size: 12px;">{{ issue.created_date.strftime('%m/%d') if issue.created_date }}</span>
+        <span style="font-size: 10px; color: var(--text-muted);">{{ issue.created_date.strftime('%m/%d') if issue.created_date }}</span>
     </div>
 </div>
 {% endmacro %}
