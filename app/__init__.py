@@ -16,7 +16,7 @@ def create_app(config_name='default'):
     csrf.init_app(app)
 
     # 모델 임포트 (migrate가 테이블을 인식하도록)
-    from .models import user, personnel, jira, audit  # noqa: F401
+    from .models import user, personnel, jira, audit, vehicle  # noqa: F401
 
     # 블루프린트 등록
     from .auth import auth_bp
@@ -36,6 +36,9 @@ def create_app(config_name='default'):
 
     from .admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
+
+    from .vehicle import vehicle_bp
+    app.register_blueprint(vehicle_bp, url_prefix='/vehicle')
 
     from .api import api_bp
     app.register_blueprint(api_bp, url_prefix='/api')

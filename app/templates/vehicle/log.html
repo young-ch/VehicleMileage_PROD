@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}{{ current_vehicle.name }} 운행일지 - 법인차량 관리{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 엑셀 스타일 차량 운행일지 전용 CSS */
+    .vehicle-tab-container {
+        display: flex;
+        gap: 6px;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 20px;
+    }
+    .vehicle-tab {
+        padding: 10px 20px;
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--text-secondary);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-bottom: none;
+        border-radius: 6px 6px 0 0;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .vehicle-tab:hover {
+        color: var(--text-white);
+        background: var(--bg-card-hover);
+    }
+    .vehicle-tab.active {
+        color: var(--accent-primary);
+        background: var(--bg-main);
+        border-color: var(--accent-primary);
+        border-bottom: 2px solid var(--bg-main);
+        margin-bottom: -2px;
+    }
+
+    /* 엑셀 헤더 정보 표 메인 디자인 */
+    .excel-header-box {
+        background: #1c2333;
+        border: 2px solid #2d3748;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .excel-header-row {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+    .excel-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+    .excel-meta-label {
+        background: #2b3649;
+        color: #94a3b8;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    .excel-meta-val {
+        font-weight: 700;
+        font-size: 16px;
+        color: #f8fafc;
+    }
+    .excel-notice-alert {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid #ef4444;
+        color: #fca5a5;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        flex: 1;
+        min-width: 280px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* 엑셀 양식 테이블 스타일링 */
+    .excel-table-container {
+        overflow-x: auto;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        background: #0f172a;
+    }
+    .excel-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        color: #e2e8f0;
+    }
+    .excel-table th {
+        background: #1e293b;
+        color: #cbd5e1;
+        font-weight: 700;
+        border: 1px solid #334155;
+        padding: 10px 8px;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .excel-table td {
+        border: 1px solid #334155;
+        padding: 10px 8px;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .excel-table tr:nth-child(even) td {
+        background: rgba(30, 41, 59, 0.4);
+    }
+    .excel-table tr:hover td {
+        background: rgba(51, 65, 85, 0.6);
+    }
+
+    /* 입력 폼 그리드 */
+    .log-input-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 18px 20px;
+        margin-bottom: 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header page-header-actions">
+    <div>
+        <h2>🚗 법인차량 운행일지</h2>
+        <p>차량별 운행 기록을 일지 형태로 작성하고 누적 주행거리를 관리합니다</p>
+    </div>
+    <div class="btn-group">
+        <a href="{{ url_for('vehicle.export_excel', vehicle_id=current_vehicle.id) }}" class="btn btn-secondary" style="background:#1e293b; border-color:#334155; color:#38bdf8;">
+            📥 엑셀 출력 (.csv)
+        </a>
+        {% if current_user.is_admin %}
+        <button type="button" class="btn btn-warning" onclick="toggleAdminEditModal()">
+            ✏️ 차량 정보 수정 (관리자 전용)
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 1. 차량 선택 탭 목록 (엑셀 하단 시트 탭 느낌) -->
+<div class="vehicle-tab-container">
+    {% for v in all_vehicles %}
+    <a href="{{ url_for('vehicle.view_log', vehicle_id=v.id) }}" 
+       class="vehicle-tab {{ 'active' if v.id == current_vehicle.id }}">
+        🚘 {{ v.name }} (${ v.plate_number if v.name != v.plate_number else '' })
+    </a>
+    {% endfor %}
+</div>
+
+<!-- 2. 상단 엑셀 헤더 정보 (차종, 차량번호, 유종, 주의사항) -->
+<div class="excel-header-box">
+    <div class="excel-header-row">
+        <div class="excel-meta-item">
+            <span class="excel-meta-label">① 차종</span>
+            <span class="excel-meta-val">{{ current_vehicle.name }}</span>
+        </div>
+        <div class="excel-meta-item">
+            <span class="excel-meta-label">차량번호</span>
+            <span class="excel-meta-val" style="color: #60a5fa;">{{ current_vehicle.plate_number }}</span>
+        </div>
+        <div class="excel-meta-item">
+            <span class="excel-meta-label">유종</span>
+            <span class="excel-meta-val" style="color: #4ade80;">{{ current_vehicle.fuel_type }}</span>
+        </div>
+
+        <div class="excel-notice-alert">
+            🚨 <span>{{ current_vehicle.notice }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- 관리자 전용 차량 정보 수정 모달/폼 (기본 숨김) -->
+{% if current_user.is_admin %}
+<div id="admin-edit-panel" class="card mb-3" style="display: none; border: 2px solid var(--accent-primary);">
+    <div class="card-header">
+        <h3 class="card-title">👑 차량 기본 정보 수정 (관리자 전용)</h3>
+    </div>
+    <form method="POST" action="{{ url_for('vehicle.update_vehicle_info', vehicle_id=current_vehicle.id) }}" style="padding: 16px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">차종 명칭</label>
+                <input type="text" name="name" class="form-control" value="{{ current_vehicle.name }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">차량 번호</label>
+                <input type="text" name="plate_number" class="form-control" value="{{ current_vehicle.plate_number }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">유종</label>
+                <input type="text" name="fuel_type" class="form-control" value="{{ current_vehicle.fuel_type }}">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">상단 주의사항 문구</label>
+                <input type="text" name="notice" class="form-control" value="{{ current_vehicle.notice }}">
+            </div>
+        </div>
+        <div class="btn-group mt-2">
+            <button type="submit" class="btn btn-primary">💾 관리자 설정 저장</button>
+            <button type="button" class="btn btn-secondary" onclick="toggleAdminEditModal()">취소</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+<!-- 3. 운행일지 작성 폼 -->
+<div class="log-input-card">
+    <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--accent-primary); display: flex; align-items: center; gap: 6px;">
+        ✍️ 신규 운행일지 기록
+    </h3>
+    <form method="POST" action="{{ url_for('vehicle.add_log', vehicle_id=current_vehicle.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">② 시작시간 *</label>
+                <input type="text" name="start_time" class="form-control" id="inp-start-time" placeholder="예: 2026-08-27 11:00 AM" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">③ 종료시간</label>
+                <input type="text" name="end_time" class="form-control" id="inp-end-time" placeholder="예: 2026-08-27 2:00 PM">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">④ 부서</label>
+                <input type="text" name="department" class="form-control" placeholder="예: 국제협력국, 기획경영국">
+            </div>
+            <div class="form-group">
+                <label class="form-label">④ 신청자 성명 *</label>
+                <input type="text" name="applicant" class="form-control" value="{{ current_user.username }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">④ 운전자 성명</label>
+                <input type="text" name="driver" class="form-control" value="{{ current_user.username }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">⑤ 주행 전 계기판 거리 (km)</label>
+                <input type="number" step="0.1" name="start_distance" id="inp_start_dist" class="form-control" 
+                       value="{{ default_start_distance }}" oninput="calcDistances()" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">⑦ 주행거리 (km)</label>
+                <input type="number" step="0.1" name="distance" id="inp_distance" class="form-control" 
+                       placeholder="예: 15" oninput="calcDistances()" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">⑥ 주행 후 계기판 거리 (km) [자동 계산]</label>
+                <input type="number" step="0.1" id="inp_end_dist" class="form-control" 
+                       value="{{ default_start_distance }}" readonly style="background: rgba(255,255,255,0.05); font-weight:700; color:#38bdf8;">
+            </div>
+
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">⑧ 용도 / 구체적 사유</label>
+                <input type="text" name="purpose" class="form-control" placeholder="예: 외근, 외부손님 이동, 업무 미팅 등">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">비고 (충전필요, 사고여부 등)</label>
+                <input type="text" name="notes" class="form-control" placeholder="예: 이상없음 / 연료 50% 남음">
+            </div>
+        </div>
+
+        <div class="mt-2" style="text-align: right;">
+            <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
+                ➕ 운행일지 기록 저장
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- 4. 엑셀 형태 운행일지 테이블 리스트 -->
+<div class="excel-table-container">
+    <table class="excel-table">
+        <thead>
+            <tr>
+                <th rowspan="2">② 시작시간</th>
+                <th rowspan="2">③ 종료시간</th>
+                <th colspan="3">④ 사용자</th>
+                <th colspan="3">운행 내역</th>
+                <th rowspan="2">⑧ 용도<br><span style="font-size:10px; font-weight:normal; color:#94a3b8;">구체적 사유</span></th>
+                <th rowspan="2">비고<br><span style="font-size:10px; font-weight:normal; color:#94a3b8;">충전/사고여부</span></th>
+                <th rowspan="2">작업</th>
+            </tr>
+            <tr>
+                <th>부서</th>
+                <th>신청자</th>
+                <th>운전자</th>
+                <th>⑤ 주행 전 거리(km)</th>
+                <th>⑥ 주행 후 거리(km)</th>
+                <th>⑦ 주행거리(km)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if logs %}
+                {% for log in logs %}
+                <tr>
+                    <td style="color: #cbd5e1; font-size:12px;">{{ log.start_time or '-' }}</td>
+                    <td style="color: #cbd5e1; font-size:12px;">{{ log.end_time or '-' }}</td>
+                    <td>{{ log.department or '-' }}</td>
+                    <td style="font-weight: 600;">{{ log.applicant or '-' }}</td>
+                    <td>{{ log.driver or '-' }}</td>
+                    <td style="font-family: monospace; color: #94a3b8;">{{ "{:,.0f}".format(log.start_distance) if log.start_distance else '0' }}</td>
+                    <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) if log.end_distance else '0' }}</td>
+                    <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) if log.distance else '0' }}</td>
+                    <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.purpose or '-' }}</td>
+                    <td>{{ log.notes or '-' }}</td>
+                    <td>
+                        {% if current_user.is_admin or log.registered_by == current_user.id %}
+                        <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger" style="padding: 2px 6px; font-size:11px;" 
+                                    onclick="return confirm('이 운행일지 기록을 삭제하시겠습니까?')">삭제</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="11" style="padding: 40px; color: #64748b; font-size: 14px;">
+                        등록된 운행일지 기록이 없습니다. 상단 폼에서 신규 일지를 입력해 보세요!
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+        <tfoot>
+            <tr style="background: #1e293b; font-weight: 700;">
+                <td colspan="7" style="text-align: right; color: #cbd5e1;">월별 / 전체 누적 주행거리 합산:</td>
+                <td style="color: #4ade80; font-size: 15px; font-family: monospace;">{{ "{:,.0f}".format(total_distance) }} km</td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 주행후 거리 자동 계산: 주행후 = 주행전 + 주행거리
+    function calcDistances() {
+        const startDist = parseFloat(document.getElementById('inp_start_dist').value) || 0;
+        const dist = parseFloat(document.getElementById('inp_distance').value) || 0;
+        const endDistEl = document.getElementById('inp_end_dist');
+
+        if (endDistEl) {
+            endDistEl.value = (startDist + dist).toFixed(1);
+        }
+    }
+
+    // 관리자 편집 패널 토글
+    function toggleAdminEditModal() {
+        const panel = document.getElementById('admin-edit-panel');
+        if (panel) {
+            panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+        }
+    }
+
+    // 페이지 로드 시 오늘 날짜 기본 입력
+    document.addEventListener('DOMContentLoaded', () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+
+        const nowStr = `${year}-${month}-${day} ${hours}:${mins}`;
+
+        const startInp = document.getElementById('inp-start-time');
+        if (startInp && !startInp.value) {
+            startInp.value = nowStr;
+        }
+
+        calcDistances();
+    });
+</script>
+{% endblock %}
