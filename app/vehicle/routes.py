@@ -2,6 +2,7 @@
 import csv
 import io
 from datetime import datetime, date
+from urllib.parse import quote
 from flask import render_template, redirect, url_for, flash, request, Response, jsonify
 from flask_login import login_required, current_user
 from ..extensions import db
@@ -82,13 +83,16 @@ def view_log(vehicle_id):
     last_log = VehicleLog.query.filter_by(vehicle_id=vehicle_id).order_by(VehicleLog.id.desc()).first()
     default_start_distance = last_log.end_distance if last_log else 0.0
 
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+
     return render_template('vehicle/log.html',
                            current_vehicle=current_vehicle,
                            all_vehicles=all_vehicles,
                            logs=logs,
                            pagination=pagination,
                            default_start_distance=default_start_distance,
-                           total_distance=total_distance)
+                           total_distance=total_distance,
+                           now_str=now_str)
 
 
 @vehicle_bp.route('/<int:vehicle_id>/log/add', methods=['POST'])
@@ -338,68 +342,113 @@ def delete_vehicle(vehicle_id):
     return redirect(url_for('main.dashboard'))
 
 
+@vehicle_bp.route('/export-excel', methods=['GET', 'POST'])
 @vehicle_bp.route('/<int:vehicle_id>/export-excel', methods=['GET', 'POST'])
 @login_required
-def export_excel(vehicle_id):
-    """권한 있는 사용자: 날짜 범위 지정 엑셀(.csv) 출력 양식 생성"""
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+def export_excel(vehicle_id=None):
+    """권한 있는 사용자: 다중 차량 선택 및 날짜 범위 지정 엑셀(.csv) 보고서 일괄 다운로드"""
+    raw_vids = request.args.getlist('vehicle_ids') or request.form.getlist('vehicle_ids')
+    vehicle_ids = []
+    for vid in raw_vids:
+        try:
+            vehicle_ids.append(int(vid))
+        except ValueError:
+            pass
+
+    if vehicle_ids:
+        vehicles = Vehicle.query.filter(Vehicle.id.in_(vehicle_ids), Vehicle.is_active == True).order_by(Vehicle.id.asc()).all()
+    elif vehicle_id:
+        v = Vehicle.query.get(vehicle_id)
+        vehicles = [v] if v else []
+    else:
+        vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
+
+    if not vehicles:
+        flash('출력할 차량을 최소 1개 이상 선택해주세요.', 'warning')
+        return redirect(url_for('main.dashboard'))
 
     start_date = request.args.get('start_date', '').strip() or request.form.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip() or request.form.get('end_date', '').strip()
-
-    query = VehicleLog.query.filter_by(vehicle_id=vehicle_id)
-
-    if start_date:
-        query = query.filter(VehicleLog.start_time >= start_date)
-    if end_date:
-        query = query.filter(VehicleLog.start_time <= end_date + ' 23:59:59')
-
-    # 시작시간 순차 정렬로 엑셀 보고서 출력
-    logs = query.order_by(VehicleLog.start_time.asc()).all()
 
     output = io.StringIO()
     output.write('\uFEFF')  # UTF-8 BOM (한글 깨짐 방지)
     writer = csv.writer(output)
 
-    # 엑셀 1행: 차종, 차량번호, 유종, 주의사항 양식
-    writer.writerow(['① 차종', vehicle.name, '', '차량번호', vehicle.plate_number, '', '유종', vehicle.fuel_type, '', vehicle.notice])
-    writer.writerow([])
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+    grand_total_dist = 0.0
 
-    # 엑셀 3행: 표 헤더 항목
-    writer.writerow([
-        '② 시작시간',
-        '③ 종료시간',
-        '④ 사용자 - 부서',
-        '④ 사용자 - 신청자',
-        '④ 사용자 - 운전자',
-        '⑤ 주행 전 계기판 거리(km)',
-        '⑥ 주행 후 계기판 거리(km)',
-        '⑦ 주행거리(km)',
-        '⑧ 용도 (구체적 사유)',
-        '비고 (충전필요, 사고여부 등)'
-    ])
+    for vehicle in vehicles:
+        query = VehicleLog.query.filter_by(vehicle_id=vehicle.id)
 
-    for log in logs:
+        if start_date:
+            query = query.filter(VehicleLog.start_time >= start_date)
+        if end_date:
+            query = query.filter(VehicleLog.start_time <= end_date + ' 23:59:59')
+
+        logs = query.order_by(VehicleLog.start_time.asc()).all()
+
+        # 차량별 헤더 양식
+        writer.writerow(['① 차종', vehicle.name, '', '차량번호', vehicle.plate_number, '', '유종', vehicle.fuel_type, '', vehicle.notice])
+        writer.writerow([])
+
+        # 차량별 표 헤더
         writer.writerow([
-            log.start_time or '',
-            log.end_time or '',
-            log.department or '',
-            log.applicant or '',
-            log.driver or '',
-            f"{log.start_distance:,.0f}" if log.start_distance else "0",
-            f"{log.end_distance:,.0f}" if (log.distance and log.distance > 0) else "-[운행 중]-",
-            f"{log.distance:,.0f}" if (log.distance and log.distance > 0) else "-",
-            log.purpose or '',
-            log.notes or ''
+            '② 시작시간',
+            '③ 종료시간',
+            '④ 사용자 - 부서',
+            '④ 사용자 - 신청자',
+            '④ 사용자 - 운전자',
+            '⑤ 주행 전 계기판 거리(km)',
+            '⑥ 주행 후 계기판 거리(km)',
+            '⑦ 주행거리(km)',
+            '⑧ 용도 (구체적 사유)',
+            '비고 (충전필요, 사고여부 등)'
         ])
 
-    total_dist = sum(l.distance for l in logs)
-    writer.writerow([])
+        v_total_dist = 0.0
+        for log in logs:
+            if log.distance and log.distance > 0:
+                end_dist_str = f"{log.end_distance:,.0f}"
+                dist_str = f"{log.distance:,.0f}"
+                v_total_dist += log.distance
+            else:
+                if log.start_time and now_str < log.start_time:
+                    end_dist_str = "-[사용 전]-"
+                elif log.end_time and now_str > log.end_time:
+                    end_dist_str = "-[거리 미입력]-"
+                else:
+                    end_dist_str = "-[운행 중]-"
+                dist_str = "-"
 
-    period_str = f"{start_date} ~ {end_date}" if (start_date or end_date) else "전체 기간"
-    writer.writerow([f'선택 기간 ({period_str}) 누적 주행거리 합계', '', '', '', '', '', '', f"{total_dist:,.0f} km", '', ''])
+            writer.writerow([
+                log.start_time or '',
+                log.end_time or '',
+                log.department or '',
+                log.applicant or '',
+                log.driver or '',
+                f"{log.start_distance:,.0f}" if log.start_distance else "0",
+                end_dist_str,
+                dist_str,
+                log.purpose or '',
+                log.notes or ''
+            ])
 
-    response = Response(output.getvalue(), mimetype='text/csv')
-    filename = f"Vehicle_Log_{vehicle.name}_{start_date or 'ALL'}_to_{end_date or 'ALL'}.csv"
-    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        grand_total_dist += v_total_dist
+        period_str = f"{start_date} ~ {end_date}" if (start_date or end_date) else "전체 기간"
+        writer.writerow([f'[{vehicle.name}] 선택 기간 ({period_str}) 누적 주행거리 합계', '', '', '', '', '', '', f"{v_total_dist:,.0f} km", '', ''])
+        writer.writerow([])
+        writer.writerow([])
+
+    if len(vehicles) > 1:
+        writer.writerow([f'=== 선택한 전체 {len(vehicles)}개 차량 총 누적 주행거리 합계 ===', '', '', '', '', '', '', f"{grand_total_dist:,.0f} km", '', ''])
+
+    if len(vehicles) == 1:
+        raw_filename = f"Vehicle_Log_{vehicles[0].name}_{start_date or 'ALL'}_to_{end_date or 'ALL'}.csv"
+    else:
+        raw_filename = f"Vehicle_Log_전체차량({len(vehicles)}대)_{start_date or 'ALL'}_to_{end_date or 'ALL'}.csv"
+
+    encoded_filename = quote(raw_filename)
+
+    response = Response(output.getvalue(), mimetype='text/csv; charset=utf-8')
+    response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
     return response

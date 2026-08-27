@@ -164,12 +164,33 @@
     </div>
 </div>
 
-<!-- 엑셀 출력 날짜 범위 지정 모달 (기본 숨김) -->
+<!-- 엑셀 출력 날짜 범위 및 차량 선택 지정 모달 (기본 숨김) -->
 <div id="excel-export-panel" class="card mb-3" style="display: none; border: 2px solid #38bdf8;">
     <div class="card-header" style="background: #1e293b; color: #38bdf8;">
-        <h3 class="card-title">📥 [{{ current_vehicle.name }}] 엑셀 출력 날짜 범위 지정</h3>
+        <h3 class="card-title">📥 법인차량 엑셀 보고서 다운로드 (차량 선택 & 기간 지정)</h3>
     </div>
-    <form method="GET" action="{{ url_for('vehicle.export_excel', vehicle_id=current_vehicle.id) }}" style="padding: 16px;">
+    <form method="GET" action="{{ url_for('vehicle.export_excel') }}" style="padding: 18px 20px;">
+        <!-- 1. 차량 선택 체크박스 (전체 선택 or 개별 선택) -->
+        <div class="form-group mb-3">
+            <label class="form-label" style="color: #38bdf8; font-weight: 700; margin-bottom: 8px;">
+                🚘 엑셀 출력 대상 차량 선택 (개별 선택 또는 전체 선택)
+            </label>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 6px; border: 1px solid #334155;">
+                <label style="cursor: pointer; font-weight: 700; color: #4ade80; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="chk-all-vehicles" onchange="toggleSelectAllVehicles(this)" checked style="width:16px; height:16px; cursor:pointer;">
+                    ✨ 전체 차량 선택
+                </label>
+                <div style="width: 1px; height: 20px; background: #475569;"></div>
+                {% for v in all_vehicles %}
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; color: #f1f5f9; font-weight: 600;">
+                    <input type="checkbox" name="vehicle_ids" value="{{ v.id }}" class="chk-vehicle-item" checked style="width:15px; height:15px; cursor:pointer;">
+                    🚘 {{ v.name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 2. 날짜 범위 지정 -->
         <div class="form-grid">
             <div class="form-group">
                 <label class="form-label">시작일자 (Start Date)</label>
@@ -180,8 +201,8 @@
                 <input type="date" name="end_date" id="export_end_date" class="form-control">
             </div>
         </div>
-        <div class="btn-group mt-2">
-            <button type="submit" class="btn btn-primary" style="background: #0284c7;">📥 해당 기간 엑셀 보고서 다운로드</button>
+        <div class="btn-group mt-3" style="text-align: right;">
+            <button type="submit" class="btn btn-primary" style="background: #0284c7; padding: 8px 24px; font-weight: 700;">📥 선택한 차량 및 기간 엑셀 보고서 다운로드</button>
             <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()">취소</button>
         </div>
     </form>
@@ -417,8 +438,16 @@
                     <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) }}</td>
                     <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) }}</td>
                     {% else %}
-                    <td style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">-[운행 중]-</td>
-                    <td style="color: #64748b; font-size: 11px;">-</td>
+                        {% if log.start_time and now_str < log.start_time %}
+                        <td style="color: #60a5fa; font-size: 11px; font-weight: 600; background: rgba(96, 165, 250, 0.1); border-radius: 4px;">-[사용 전]-</td>
+                        <td style="color: #64748b; font-size: 11px;">-</td>
+                        {% elif log.end_time and now_str > log.end_time %}
+                        <td style="color: #f87171; font-size: 11px; font-weight: 600; background: rgba(248, 113, 113, 0.1); border-radius: 4px;">-[거리 미입력]-</td>
+                        <td style="color: #64748b; font-size: 11px;">-</td>
+                        {% else %}
+                        <td style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">-[운행 중]-</td>
+                        <td style="color: #64748b; font-size: 11px;">-</td>
+                        {% endif %}
                     {% endif %}
                     <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{ log.purpose or '-' }}</td>
                     <td>{{ log.notes or '-' }}</td>
@@ -540,6 +569,14 @@
                 endDistEl.placeholder = "도착 후 주행거리 입력 시 자동계산";
             }
         }
+    }
+
+    // 엑셀 전체 차량 선택 / 해제 토글
+    function toggleSelectAllVehicles(masterChk) {
+        const chks = document.querySelectorAll('.chk-vehicle-item');
+        chks.forEach(chk => {
+            chk.checked = masterChk.checked;
+        });
     }
 
     // 엑셀 출력 패널 토글
