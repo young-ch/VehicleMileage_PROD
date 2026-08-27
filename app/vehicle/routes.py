@@ -90,8 +90,8 @@ def add_log(vehicle_id):
     purpose = request.form.get('purpose', '').strip()
     notes = request.form.get('notes', '').strip()
 
-    if not start_time or not applicant:
-        flash('시작시간 및 신청자 성명은 필수 입력값입니다.', 'danger')
+    if not start_time or not end_time or not applicant:
+        flash('시작시간, 종료시간 및 신청자 성명은 필수 입력값입니다.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     new_log = VehicleLog(
@@ -119,6 +119,63 @@ def add_log(vehicle_id):
     })
 
     flash(f'{vehicle.name} 운행일지가 등록되었습니다. (주행거리: {distance} km)', 'success')
+    return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+
+@vehicle_bp.route('/log/<int:log_id>/edit', methods=['POST'])
+@login_required
+def edit_log(log_id):
+    """운행일지 리스트 항목 수정 (종료시간, 운전자, 주행거리, 용도, 비고)"""
+    log_item = VehicleLog.query.get_or_404(log_id)
+    vehicle_id = log_item.vehicle_id
+
+    # 작성자 본인 또는 차량관리자만 수정 가능
+    if not current_user.is_admin and not current_user.is_vehicle_manager and log_item.registered_by != current_user.id:
+        flash('본인이 등록한 일지 또는 차량관리자만 수정할 수 있습니다.', 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+    old_values = {
+        'end_time': log_item.end_time,
+        'driver': log_item.driver,
+        'distance': log_item.distance,
+        'purpose': log_item.purpose,
+        'notes': log_item.notes
+    }
+
+    new_end_time = request.form.get('end_time', '').strip().replace('T', ' ')
+    if new_end_time:
+        log_item.end_time = new_end_time
+
+    if 'driver' in request.form:
+        log_item.driver = request.form.get('driver', '').strip()
+
+    if 'purpose' in request.form:
+        log_item.purpose = request.form.get('purpose', '').strip()
+
+    if 'notes' in request.form:
+        log_item.notes = request.form.get('notes', '').strip()
+
+    # 주행거리 입력 시 주행후 거리 재계산: end_distance = start_distance + distance
+    dist_val = request.form.get('distance', '').strip()
+    if dist_val != '':
+        try:
+            new_distance = float(dist_val)
+            log_item.distance = new_distance
+            log_item.end_distance = log_item.start_distance + new_distance
+        except ValueError:
+            pass
+
+    db.session.commit()
+
+    log_audit('UPDATE', 'vehicle_logs', log_item.id, old_values=old_values, new_values={
+        'end_time': log_item.end_time,
+        'driver': log_item.driver,
+        'distance': log_item.distance,
+        'purpose': log_item.purpose,
+        'notes': log_item.notes
+    })
+
+    flash('운행일지 기록이 성공적으로 수정되었습니다.', 'success')
     return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
 

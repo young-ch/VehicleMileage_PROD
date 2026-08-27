@@ -47,7 +47,7 @@ def create_app(config_name='default'):
     @app.context_processor
     def inject_globals():
         return {
-            'app_name': 'SMU JIRA 관리 시스템',
+            'app_name': 'SMU 관리 시스템',
         }
 
     # DB 테이블 자동 생성 (개발 모드)

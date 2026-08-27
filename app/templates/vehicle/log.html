@@ -152,7 +152,7 @@
     {% for v in all_vehicles %}
     <a href="{{ url_for('vehicle.view_log', vehicle_id=v.id) }}" 
        class="vehicle-tab {{ 'active' if v.id == current_vehicle.id }}">
-        🚘 {{ v.name }} (${ v.plate_number if v.name != v.plate_number else '' })
+        🚘 {{ v.name }}
     </a>
     {% endfor %}
 </div>
@@ -227,8 +227,8 @@
                 <input type="datetime-local" name="start_time" class="form-control" id="inp-start-time" required>
             </div>
             <div class="form-group">
-                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택)</label>
-                <input type="datetime-local" name="end_time" class="form-control" id="inp-end-time">
+                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택) *</label>
+                <input type="datetime-local" name="end_time" class="form-control" id="inp-end-time" required>
             </div>
 
             <div class="form-group">
@@ -251,9 +251,9 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">⑦ 주행거리 (km)</label>
+                <label class="form-label">⑦ 주행거리 (km) [도착 후 입력 가능]</label>
                 <input type="number" step="0.1" name="distance" id="inp_distance" class="form-control" 
-                       placeholder="예: 15" oninput="calcDistances()" required>
+                       placeholder="도착 후 수정 시 입력 (선택)" oninput="calcDistances()">
             </div>
 
             <div class="form-group">
@@ -319,6 +319,10 @@
                     <td>{{ log.notes or '-' }}</td>
                     <td>
                         {% if current_user.is_admin or current_user.is_vehicle_manager or log.registered_by == current_user.id %}
+                        <button type="button" class="btn btn-sm btn-secondary" style="padding: 2px 8px; font-size:11px; margin-right:4px;"
+                                onclick="openLogItemEditModal({{ log.id }}, '{{ log.end_time or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}')">
+                            수정
+                        </button>
                         <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger" style="padding: 2px 6px; font-size:11px;" 
@@ -346,6 +350,42 @@
     </table>
 </div>
 
+<!-- 5. 운행일지 리스트 항목 수정 팝업/모달 (종료시간, 운전자, 주행거리, 용도, 비고) -->
+<div id="log-item-edit-panel" class="card" style="display: none; border: 2px solid var(--accent-primary); margin-top: 24px;">
+    <div class="card-header" style="background: #1e293b; color: #f8fafc;">
+        <h3 class="card-title">✏️ 운행일지 기록 수정 (도착 후 주행거리 / 종료시간 / 용도 입력)</h3>
+    </div>
+    <form id="log-edit-form" method="POST" action="" style="padding: 18px 20px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">③ 종료시간 (캘린더 & 시간 선택)</label>
+                <input type="datetime-local" name="end_time" id="edit_end_time" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">④ 운전자 성명</label>
+                <input type="text" name="driver" id="edit_driver" class="form-control" placeholder="운전자 성명">
+            </div>
+            <div class="form-group">
+                <label class="form-label">⑦ 주행거리 (km)</label>
+                <input type="number" step="0.1" name="distance" id="edit_distance" class="form-control" placeholder="도착 후 주행거리 (km)">
+            </div>
+            <div class="form-group">
+                <label class="form-label">⑧ 용도 / 구체적 사유</label>
+                <input type="text" name="purpose" id="edit_purpose" class="form-control" placeholder="예: 외근, 외부손님 이동, 업무 미팅 등">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">비고 (충전필요, 사고여부 등)</label>
+                <input type="text" name="notes" id="edit_notes" class="form-control" placeholder="비고 입력">
+            </div>
+        </div>
+        <div class="btn-group mt-2" style="text-align: right;">
+            <button type="submit" class="btn btn-primary" style="padding: 8px 20px;">💾 수정 내용 저장</button>
+            <button type="button" class="btn btn-secondary" onclick="closeLogItemEditModal()">취소</button>
+        </div>
+    </form>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -369,6 +409,36 @@
         }
     }
 
+    // 리스트 항목 수정 모달 열기
+    function openLogItemEditModal(id, endTime, driver, distance, purpose, notes) {
+        const panel = document.getElementById('log-item-edit-panel');
+        const form = document.getElementById('log-edit-form');
+
+        if (panel && form) {
+            form.action = `/vehicle/log/${id}/edit`;
+
+            if (endTime && endTime.includes(' ')) {
+                endTime = endTime.replace(' ', 'T');
+            }
+            document.getElementById('edit_end_time').value = endTime || '';
+            document.getElementById('edit_driver').value = driver || '';
+            document.getElementById('edit_distance').value = (distance && distance !== '0') ? distance : '';
+            document.getElementById('edit_purpose').value = purpose || '';
+            document.getElementById('edit_notes').value = notes || '';
+
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    // 리스트 항목 수정 모달 닫기
+    function closeLogItemEditModal() {
+        const panel = document.getElementById('log-item-edit-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+    }
+
     // 페이지 로드 시 오늘 날짜 기본 입력
     document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
@@ -383,6 +453,11 @@
         const startInp = document.getElementById('inp-start-time');
         if (startInp && !startInp.value) {
             startInp.value = nowLocalStr;
+        }
+
+        const endInp = document.getElementById('inp-end-time');
+        if (endInp && !endInp.value) {
+            endInp.value = nowLocalStr;
         }
 
         calcDistances();
