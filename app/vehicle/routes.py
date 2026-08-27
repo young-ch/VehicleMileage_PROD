@@ -54,7 +54,12 @@ def check_time_overlap(vehicle_id, start_time, end_time, exclude_log_id=None):
 def index():
     """기본 법인차량 운행일지 페이지 (첫 번째 차량으로 리다이렉트)"""
     _ensure_default_vehicles()
-    first_vehicle = Vehicle.query.filter_by(is_active=True).first()
+    is_manager_or_admin = (current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage'))
+    if is_manager_or_admin:
+        first_vehicle = Vehicle.query.order_by(Vehicle.id.asc()).first()
+    else:
+        first_vehicle = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).first()
+
     if first_vehicle:
         return redirect(url_for('vehicle.view_log', vehicle_id=first_vehicle.id))
     flash('등록된 법인차량이 없습니다.', 'warning')
@@ -105,7 +110,20 @@ def _render_log_page(vehicle_id, form_data=None, edit_form_data=None, edit_log_i
     """차량별 운행일지 조회 및 렌더링 헬퍼 (검증 오류 시 사용자가 기입한 form_data를 보존하여 복원)"""
     _ensure_default_vehicles()
     current_vehicle = Vehicle.query.get_or_404(vehicle_id)
-    all_vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
+
+    # 비활성화 차량 접근 제어: 관리자/차량관리자는 비활성화 차량도 조회 가능, 일반 사용자는 활성화 차량만 접근 가능
+    is_manager_or_admin = (current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage'))
+    if not current_vehicle.is_active and not is_manager_or_admin:
+        flash(f"차량 '{current_vehicle.name}'은(는) 현재 비활성화(운행 중단) 상태이므로 일반 사용자는 접근할 수 없습니다.", 'warning')
+        first_active = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).first()
+        if first_active:
+            return redirect(url_for('vehicle.view_log', vehicle_id=first_active.id))
+        return redirect(url_for('main.dashboard'))
+
+    if is_manager_or_admin:
+        all_vehicles = Vehicle.query.order_by(Vehicle.id.asc()).all()
+    else:
+        all_vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
 
     # 차량의 주행전/후 거리 동기화 및 이전 운행 마감 대기 맵 생성
     sync_vehicle_log_distances(vehicle_id)
@@ -164,11 +182,105 @@ def add_log(vehicle_id):
     """운행일지 항목 신규 등록 (동일 차량 내 시간 중복 방증 및 시간 선후관계 검증 포함)"""
     vehicle = Vehicle.query.get_or_404(vehicle_id)
 
+    if not vehicle.is_active:
+        session['add_log_form_data'] = request.form.to_dict()
+        flash('⚠️ 해당 차량은 현재 비활성화(운행 중단) 상태이므로 신규 운행일지를 등록할 수 없습니다.', 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
     start_time = request.form.get('start_time', '').strip().replace('T', ' ')
     end_time = request.form.get('end_time', '').strip().replace('T', ' ')
     department = request.form.get('department', '').strip()
     applicant = request.form.get('applicant', '').strip()
     driver = request.form.get('driver', '').strip()
+
+
+@vehicle_bp.route('/<int:vehicle_id>/toggle-active', methods=['POST'])
+@login_required
+@permission_required('vehicle_manage')
+def toggle_vehicle_active(vehicle_id):
+    """차량관리자/관리자 전용: 차량 비활성화 (운행 중단 & 일반 사용자 숨김) 또는 다시 활성화"""
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+
+    if vehicle.is_active:
+        active_count = Vehicle.query.filter_by(is_active=True).count()
+        if active_count <= 1:
+            flash('최소 1개 이상의 활성 차량 탭이 유지되어야 하므로 비활성화할 수 없습니다.', 'warning')
+            return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+    vehicle.is_active = not vehicle.is_active
+    db.session.commit()
+
+    status_str = "다시 활성화되었습니다. (모든 일반 사용자에게 노출됨)" if vehicle.is_active else "비활성화되었습니다. (운행 중단 & 일반 사용자 숨김, 관리자만 조회 및 엑셀 출력 가능)"
+    log_audit('UPDATE', 'vehicles', vehicle_id, new_values={'is_active': vehicle.is_active, 'name': vehicle.name})
+
+    flash(f"차량 '{vehicle.name}'이(가) {status_str}", 'info' if vehicle.is_active else 'warning')
+    return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+
+@vehicle_bp.route('/<int:vehicle_id>/delete-vehicle', methods=['POST'])
+@login_required
+@permission_required('vehicle_manage')
+def delete_vehicle(vehicle_id):
+    """차량관리자/관리자 전용: 등록된 차량(탭) 및 관련 운행일지 데이터 영구 완전 삭제"""
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+
+    if vehicle.is_active:
+        active_count = Vehicle.query.filter_by(is_active=True).count()
+        if active_count <= 1:
+            flash('최소 1개 이상의 활성 차량 탭이 유지되어야 하므로 삭제할 수 없습니다.', 'warning')
+            return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+    v_name = vehicle.name
+    v_plate = vehicle.plate_number
+
+    # 차량 및 연관된 운행일지 기록 삭제
+    VehicleLog.query.filter_by(vehicle_id=vehicle_id).delete()
+    db.session.delete(vehicle)
+    db.session.commit()
+
+    log_audit('DELETE', 'vehicles', vehicle_id, old_values={'name': v_name, 'plate_number': v_plate})
+
+    flash(f"차량 '{v_name}'({v_plate}) 및 관련 운행일지 전체가 완전히 영구 삭제되었습니다.", 'danger')
+
+    is_manager_or_admin = (current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage'))
+    if is_manager_or_admin:
+        next_vehicle = Vehicle.query.order_by(Vehicle.id.asc()).first()
+    else:
+        next_vehicle = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).first()
+
+    if next_vehicle:
+        return redirect(url_for('vehicle.view_log', vehicle_id=next_vehicle.id))
+    return redirect(url_for('main.dashboard'))
+
+
+@vehicle_bp.route('/export-excel', methods=['GET', 'POST'])
+@vehicle_bp.route('/<int:vehicle_id>/export-excel', methods=['GET', 'POST'])
+@login_required
+def export_excel(vehicle_id=None):
+    """권한 있는 사용자: 차량별 전용 시트 탭(스타리아, 카니발, 니로, 9669)이 포함된 깔끔한 엑셀(.xlsx) 보고서 생성"""
+    raw_vids = request.args.getlist('vehicle_ids') or request.form.getlist('vehicle_ids')
+    vehicle_ids = []
+    for vid in raw_vids:
+        try:
+            vehicle_ids.append(int(vid))
+        except ValueError:
+            pass
+
+    is_manager_or_admin = (current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage'))
+
+    if vehicle_ids:
+        if is_manager_or_admin:
+            vehicles = Vehicle.query.filter(Vehicle.id.in_(vehicle_ids)).order_by(Vehicle.id.asc()).all()
+        else:
+            vehicles = Vehicle.query.filter(Vehicle.id.in_(vehicle_ids), Vehicle.is_active == True).order_by(Vehicle.id.asc()).all()
+    elif vehicle_id:
+        v = Vehicle.query.get(vehicle_id)
+        vehicles = [v] if v else []
+    else:
+        if is_manager_or_admin:
+            vehicles = Vehicle.query.order_by(Vehicle.id.asc()).all()
+        else:
+            vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
 
     if not start_time or not end_time or not applicant:
         session['add_log_form_data'] = request.form.to_dict()
@@ -385,57 +497,6 @@ def update_vehicle_info(vehicle_id):
     flash(f'{vehicle.name} 차량 기본 정보가 관리자 권한으로 변경되었습니다.', 'info')
     return redirect(url_for('vehicle.view_log', vehicle_id=vehicle.id))
 
-
-@vehicle_bp.route('/<int:vehicle_id>/delete-vehicle', methods=['POST'])
-@login_required
-@permission_required('vehicle_manage')
-def delete_vehicle(vehicle_id):
-    """차량관리자/관리자 전용: 등록된 차량(탭) 완전 삭제"""
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
-
-    active_count = Vehicle.query.filter_by(is_active=True).count()
-    if active_count <= 1:
-        flash('최소 1개 이상의 차량 탭이 유지되어야 하므로 삭제할 수 없습니다.', 'warning')
-        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
-
-    v_name = vehicle.name
-    v_plate = vehicle.plate_number
-
-    # 차량 및 연관된 운행일지 기록 삭제
-    VehicleLog.query.filter_by(vehicle_id=vehicle_id).delete()
-    db.session.delete(vehicle)
-    db.session.commit()
-
-    log_audit('DELETE', 'vehicles', vehicle_id, old_values={'name': v_name, 'plate_number': v_plate})
-
-    flash(f"차량 '{v_name}'({v_plate}) 및 관련 운행일지 전체가 완전히 삭제되었습니다.", 'danger')
-
-    next_vehicle = Vehicle.query.filter_by(is_active=True).first()
-    if next_vehicle:
-        return redirect(url_for('vehicle.view_log', vehicle_id=next_vehicle.id))
-    return redirect(url_for('main.dashboard'))
-
-
-@vehicle_bp.route('/export-excel', methods=['GET', 'POST'])
-@vehicle_bp.route('/<int:vehicle_id>/export-excel', methods=['GET', 'POST'])
-@login_required
-def export_excel(vehicle_id=None):
-    """권한 있는 사용자: 차량별 전용 시트 탭(스타리아, 카니발, 니로, 9669)이 포함된 깔끔한 엑셀(.xlsx) 보고서 생성"""
-    raw_vids = request.args.getlist('vehicle_ids') or request.form.getlist('vehicle_ids')
-    vehicle_ids = []
-    for vid in raw_vids:
-        try:
-            vehicle_ids.append(int(vid))
-        except ValueError:
-            pass
-
-    if vehicle_ids:
-        vehicles = Vehicle.query.filter(Vehicle.id.in_(vehicle_ids), Vehicle.is_active == True).order_by(Vehicle.id.asc()).all()
-    elif vehicle_id:
-        v = Vehicle.query.get(vehicle_id)
-        vehicles = [v] if v else []
-    else:
-        vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
 
     if not vehicles:
         flash('출력할 차량을 최소 1개 이상 선택해주세요.', 'warning')
