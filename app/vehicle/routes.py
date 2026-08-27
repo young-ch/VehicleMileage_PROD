@@ -3,6 +3,9 @@ import csv
 import io
 from datetime import datetime, date
 from urllib.parse import quote
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 from flask import render_template, redirect, url_for, flash, request, Response, jsonify
 from flask_login import login_required, current_user
 from ..extensions import db
@@ -58,6 +61,46 @@ def index():
     return redirect(url_for('main.dashboard'))
 
 
+def sync_vehicle_log_distances(vehicle_id):
+    """차량의 모든 운행일지의 주행전/주행후 거리를 시간순(start_time.asc())으로 연쇄 동기화"""
+    logs = VehicleLog.query.filter_by(vehicle_id=vehicle_id).order_by(VehicleLog.start_time.asc(), VehicleLog.id.asc()).all()
+    if not logs:
+        return
+
+    current_odometer = None
+    for log in logs:
+        if current_odometer is not None:
+            log.start_distance = current_odometer
+        if log.distance and log.distance > 0:
+            log.end_distance = log.start_distance + log.distance
+            current_odometer = log.end_distance
+        else:
+            log.end_distance = log.start_distance
+    db.session.commit()
+
+
+def get_start_dist_ready_map(vehicle_id):
+    """
+    해당 차량의 로그들을 시간순(start_time.asc())으로 분석하여
+    이전 운행자가 주행거리(km)를 마감 기입하였을 때만 다음 운행자의 '주행 전 거리'를 확정(True) 표시하는 맵 생성
+    """
+    logs = VehicleLog.query.filter_by(vehicle_id=vehicle_id).order_by(VehicleLog.start_time.asc(), VehicleLog.id.asc()).all()
+    ready_map = {}
+    pending_previous = False
+
+    for log in logs:
+        if pending_previous:
+            ready_map[log.id] = False
+        else:
+            ready_map[log.id] = True
+
+        # 이전 운행 건이 아직 마감(주행거리 > 0)되지 않았다면, 이 이후 차례의 주행전 거리는 '대기' 상태로 표시
+        if not (log.distance and log.distance > 0):
+            pending_previous = True
+
+    return ready_map
+
+
 @vehicle_bp.route('/<int:vehicle_id>')
 @login_required
 def view_log(vehicle_id):
@@ -65,6 +108,10 @@ def view_log(vehicle_id):
     _ensure_default_vehicles()
     current_vehicle = Vehicle.query.get_or_404(vehicle_id)
     all_vehicles = Vehicle.query.filter_by(is_active=True).order_by(Vehicle.id.asc()).all()
+
+    # 차량의 주행전/후 거리 동기화 및 이전 운행 마감 대기 맵 생성
+    sync_vehicle_log_distances(vehicle_id)
+    ready_map = get_start_dist_ready_map(vehicle_id)
 
     page = request.args.get('page', 1, type=int)
 
@@ -77,11 +124,15 @@ def view_log(vehicle_id):
 
     # 전체 누적 주행거리 계산 (해당 차량 전체 합산)
     all_logs_for_total = VehicleLog.query.filter_by(vehicle_id=vehicle_id).all()
-    total_distance = sum(l.distance for l in all_logs_for_total)
+    total_distance = sum((l.distance or 0.0) for l in all_logs_for_total)
 
-    # 마지막 등록된 주행후 거리를 가져와서 다음 등록 시 주행전거리 기본값으로 세팅
-    last_log = VehicleLog.query.filter_by(vehicle_id=vehicle_id).order_by(VehicleLog.id.desc()).first()
-    default_start_distance = last_log.end_distance if last_log else 0.0
+    # 마지막 마감된 주행후 거리를 가져와서 다음 등록 시 주행전거리 기본값으로 세팅
+    last_completed = VehicleLog.query.filter_by(vehicle_id=vehicle_id).filter(VehicleLog.distance > 0).order_by(VehicleLog.start_time.desc(), VehicleLog.id.desc()).first()
+    if last_completed:
+        default_start_distance = last_completed.end_distance
+    else:
+        first_log = VehicleLog.query.filter_by(vehicle_id=vehicle_id).order_by(VehicleLog.start_time.asc(), VehicleLog.id.asc()).first()
+        default_start_distance = first_log.start_distance if first_log else 0.0
 
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
 
@@ -92,7 +143,8 @@ def view_log(vehicle_id):
                            pagination=pagination,
                            default_start_distance=default_start_distance,
                            total_distance=total_distance,
-                           now_str=now_str)
+                           now_str=now_str,
+                           ready_map=ready_map)
 
 
 @vehicle_bp.route('/<int:vehicle_id>/log/add', methods=['POST'])
@@ -162,6 +214,7 @@ def add_log(vehicle_id):
 
     db.session.add(new_log)
     db.session.commit()
+    sync_vehicle_log_distances(vehicle_id)
 
     log_audit('CREATE', 'vehicle_logs', new_log.id, new_values={
         'vehicle': vehicle.name,
@@ -234,6 +287,7 @@ def edit_log(log_id):
             pass
 
     db.session.commit()
+    sync_vehicle_log_distances(vehicle_id)
 
     log_audit('UPDATE', 'vehicle_logs', log_item.id, new_values={
         'end_time': log_item.end_time,
@@ -259,6 +313,7 @@ def delete_log(log_id):
 
     db.session.delete(log_item)
     db.session.commit()
+    sync_vehicle_log_distances(vehicle_id)
 
     flash('운행일지 기록이 삭제되었습니다.', 'warning')
     return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
@@ -346,7 +401,7 @@ def delete_vehicle(vehicle_id):
 @vehicle_bp.route('/<int:vehicle_id>/export-excel', methods=['GET', 'POST'])
 @login_required
 def export_excel(vehicle_id=None):
-    """권한 있는 사용자: 다중 차량 선택 및 날짜 범위 지정 엑셀(.csv) 보고서 일괄 다운로드"""
+    """권한 있는 사용자: 차량별 전용 시트 탭(스타리아, 카니발, 니로, 9669)이 포함된 깔끔한 엑셀(.xlsx) 보고서 생성"""
     raw_vids = request.args.getlist('vehicle_ids') or request.form.getlist('vehicle_ids')
     vehicle_ids = []
     for vid in raw_vids:
@@ -370,16 +425,60 @@ def export_excel(vehicle_id=None):
     start_date = request.args.get('start_date', '').strip() or request.form.get('start_date', '').strip()
     end_date = request.args.get('end_date', '').strip() or request.form.get('end_date', '').strip()
 
-    output = io.StringIO()
-    output.write('\uFEFF')  # UTF-8 BOM (한글 깨짐 방지)
-    writer = csv.writer(output)
+    wb = openpyxl.Workbook()
+    default_sheet = wb.active
+
+    # 엑셀 고급 스타일 설정
+    header_font = Font(name='맑은 고딕', size=10, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
+    header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    summary_font = Font(name='맑은 고딕', size=11, bold=True, color='0F172A')
+    summary_fill = PatternFill(start_color='E2E8F0', end_color='E2E8F0', fill_type='solid')
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
 
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
-    grand_total_dist = 0.0
 
     for vehicle in vehicles:
-        query = VehicleLog.query.filter_by(vehicle_id=vehicle.id)
+        # 차량 명칭으로 엑셀 시트 탭 생성 (예: 스타리아, 카니발, 니로, 9669)
+        ws_title = vehicle.name.replace('/', '_')[:30]
+        ws = wb.create_sheet(title=ws_title)
 
+        headers = [
+            '시작시간',
+            '종료시간',
+            '부서',
+            '신청자',
+            '운전자',
+            '주행 전 거리(km)',
+            '주행거리(km)',
+            '주행 후 거리(km)',
+            '용도(구체적 사유)',
+            '비고'
+        ]
+
+        ws.append(headers)
+
+        # 헤더 셀 스타일 적용
+        for col_num in range(1, 11):
+            cell = ws.cell(row=1, column=col_num)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_align
+            cell.border = thin_border
+
+        ws.row_dimensions[1].height = 26
+
+        sync_vehicle_log_distances(vehicle.id)
+        ready_map = get_start_dist_ready_map(vehicle.id)
+
+        query = VehicleLog.query.filter_by(vehicle_id=vehicle.id)
         if start_date:
             query = query.filter(VehicleLog.start_time >= start_date)
         if end_date:
@@ -387,68 +486,105 @@ def export_excel(vehicle_id=None):
 
         logs = query.order_by(VehicleLog.start_time.asc()).all()
 
-        # 차량별 헤더 양식
-        writer.writerow(['① 차종', vehicle.name, '', '차량번호', vehicle.plate_number, '', '유종', vehicle.fuel_type, '', vehicle.notice])
-        writer.writerow([])
-
-        # 차량별 표 헤더
-        writer.writerow([
-            '② 시작시간',
-            '③ 종료시간',
-            '④ 사용자 - 부서',
-            '④ 사용자 - 신청자',
-            '④ 사용자 - 운전자',
-            '⑤ 주행 전 계기판 거리(km)',
-            '⑥ 주행 후 계기판 거리(km)',
-            '⑦ 주행거리(km)',
-            '⑧ 용도 (구체적 사유)',
-            '비고 (충전필요, 사고여부 등)'
-        ])
-
         v_total_dist = 0.0
+        current_row = 2
+
         for log in logs:
+            start_dist_val = log.start_distance if ready_map.get(log.id) else "-[이전 운행 마감 대기]-"
+
             if log.distance and log.distance > 0:
-                end_dist_str = f"{log.end_distance:,.0f}"
-                dist_str = f"{log.distance:,.0f}"
+                end_dist_val = log.end_distance
+                dist_val = log.distance
                 v_total_dist += log.distance
             else:
                 if log.start_time and now_str < log.start_time:
-                    end_dist_str = "-[사용 전]-"
+                    end_dist_val = "-[사용 전]-"
                 elif log.end_time and now_str > log.end_time:
-                    end_dist_str = "-[거리 미입력]-"
+                    end_dist_val = "-[거리 미입력]-"
                 else:
-                    end_dist_str = "-[운행 중]-"
-                dist_str = "-"
+                    end_dist_val = "-[운행 중]-"
+                dist_val = "-"
 
-            writer.writerow([
+            row_data = [
                 log.start_time or '',
                 log.end_time or '',
                 log.department or '',
                 log.applicant or '',
                 log.driver or '',
-                f"{log.start_distance:,.0f}" if log.start_distance else "0",
-                end_dist_str,
-                dist_str,
+                start_dist_val,
+                dist_val,
+                end_dist_val,
                 log.purpose or '',
                 log.notes or ''
-            ])
+            ]
 
-        grand_total_dist += v_total_dist
+            ws.append(row_data)
+
+            # 데이터 셀 스타일 및 서식 적용
+            for col_idx in range(1, 11):
+                cell = ws.cell(row=current_row, column=col_idx)
+                cell.font = Font(name='맑은 고딕', size=10)
+                cell.border = thin_border
+
+                if col_idx in [1, 2, 3, 4, 5]:
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                elif col_idx in [6, 7, 8]:
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                    if isinstance(cell.value, (int, float)):
+                        cell.number_format = '#,##0'
+                else:
+                    cell.alignment = Alignment(horizontal='left', vertical='center')
+
+            ws.row_dimensions[current_row].height = 20
+            current_row += 1
+
+        # 하단 합계 행 추가 (주행거리 컬럼인 7열에 수치 배치)
         period_str = f"{start_date} ~ {end_date}" if (start_date or end_date) else "전체 기간"
-        writer.writerow([f'[{vehicle.name}] 선택 기간 ({period_str}) 누적 주행거리 합계', '', '', '', '', '', '', f"{v_total_dist:,.0f} km", '', ''])
-        writer.writerow([])
-        writer.writerow([])
+        sum_row = [f"[{vehicle.name}] 선택기간 누적 주행거리 합계", '', '', '', '', '', v_total_dist, '', '', '']
+        ws.append(sum_row)
 
-    if len(vehicles) > 1:
-        writer.writerow([f'=== 선택한 전체 {len(vehicles)}개 차량 총 누적 주행거리 합계 ===', '', '', '', '', '', '', f"{grand_total_dist:,.0f} km", '', ''])
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=6)
+
+        for col_idx in range(1, 11):
+            cell = ws.cell(row=current_row, column=col_idx)
+            cell.font = summary_font
+            cell.fill = summary_fill
+            cell.border = thin_border
+
+        sum_label_cell = ws.cell(row=current_row, column=1)
+        sum_label_cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        sum_val_cell = ws.cell(row=current_row, column=7)
+        sum_val_cell.number_format = '#,##0" km"'
+        sum_val_cell.alignment = Alignment(horizontal='right', vertical='center')
+        ws.row_dimensions[current_row].height = 24
+
+        # 열 너비 자동 조정
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                val_str = str(cell.value or '')
+                len_count = len(val_str.encode('utf-8'))
+                if len_count > max_len:
+                    max_len = len_count
+            ws.column_dimensions[col_letter].width = max(max_len + 4, 13)
+
+    # 기본 생성된 빈 시트 제거
+    if default_sheet in wb.worksheets and len(wb.worksheets) > 1:
+        wb.remove(default_sheet)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
 
     if len(vehicles) == 1:
-        raw_filename = f"Vehicle_Log_{vehicles[0].name}_{start_date or 'ALL'}_to_{end_date or 'ALL'}.csv"
+        raw_filename = f"Vehicle_Log_{vehicles[0].name}_{start_date or 'ALL'}_to_{end_date or 'ALL'}.xlsx"
     else:
-        raw_filename = f"Vehicle_Log_전체차량({len(vehicles)}대)_{start_date or 'ALL'}_to_{end_date or 'ALL'}.csv"
+        raw_filename = f"Vehicle_Log_전체차량({len(vehicles)}대)_{start_date or 'ALL'}_to_{end_date or 'ALL'}.xlsx"
 
     encoded_filename = quote(raw_filename)
 
-    response = Response(output.getvalue(), mimetype='text/csv; charset=utf-8')
+    response = Response(output.getvalue(), mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
     return response
