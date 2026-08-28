@@ -230,8 +230,18 @@ def add_log(vehicle_id):
     end_dist_input = request.form.get('end_distance', '').strip()
     dist_input = request.form.get('distance', '').strip()
 
-    # 요청 1: 미래 사전 예약 건인 경우 주행 후 계기판 거리 / 주행거리 선입력 차단 및 경고
-    if is_future_booking and (end_dist_input != '' or dist_input != ''):
+    # 0 초과의 주행거리/계기판 거리를 실제로 선입력했는지 검증
+    has_preentered_dist = False
+    try:
+        if end_dist_input != '' and float(end_dist_input) > 0:
+            has_preentered_dist = True
+        elif dist_input != '' and float(dist_input) > 0:
+            has_preentered_dist = True
+    except ValueError:
+        pass
+
+    # 요청 1: 미래 사전 예약 건인 경우 0 초과 주행거리 선입력 시에만 차단
+    if is_future_booking and has_preentered_dist:
         session['add_log_form_data'] = request.form.to_dict()
         flash('⚠️ 등록 차단: 아직 시작되지 않은 미래 사전 예약 건은 주행 후 계기판 거리를 미리 선입력할 수 없습니다. 운행 완료 후 [수정] 버튼에서 기입해 주세요.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
@@ -363,7 +373,16 @@ def edit_log(log_id):
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
     is_edit_future = (new_start_time > now_str)
 
-    if is_edit_future and (end_dist_val != '' or dist_val != ''):
+    has_edit_preentered_dist = False
+    try:
+        if end_dist_val != '' and float(end_dist_val) > log_item.start_distance:
+            has_edit_preentered_dist = True
+        elif dist_val != '' and float(dist_val) > 0:
+            has_edit_preentered_dist = True
+    except ValueError:
+        pass
+
+    if is_edit_future and has_edit_preentered_dist:
         session['edit_log_form_data'] = request.form.to_dict()
         session['edit_log_id'] = log_id
         flash('⚠️ 수정 차단: 아직 시작되지 않은 미래 사전 예약 건은 주행 후 계기판 거리를 기입할 수 없습니다. 실제 운행 완료 후 기입해 주세요.', 'danger')
