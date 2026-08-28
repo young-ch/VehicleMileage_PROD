@@ -845,8 +845,25 @@
 
     // 페이지 로드 시 캘린더 피커 초기화 및 기본값 세팅
     document.addEventListener('DOMContentLoaded', () => {
-        // Flatpickr 캘린더 & 시간 선택기 (하단에 [✓ 확인 (선택 완료)] 버튼 표시)
-        flatpickr(".datetime-picker", {
+        // 신규 등록 폼 전용 시작시간 선택기 (미래 선택 시 거리 필드 차단)
+        flatpickr("#inp-start-time", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            locale: "ko",
+            plugins: [new confirmDatePlugin({
+                confirmIcon: "✓",
+                confirmText: " 확인 (선택 완료)",
+                showAlways: false,
+                theme: "dark"
+            })],
+            onChange: function(selectedDates, dateStr) {
+                checkFutureStartTime(dateStr);
+            }
+        });
+
+        // 기타 캘린더 & 시간 선택기
+        flatpickr(".datetime-picker:not(#inp-start-time)", {
             enableTime: true,
             dateFormat: "Y-m-d H:i",
             time_24hr: true,
@@ -858,6 +875,46 @@
                 theme: "dark"
             })]
         });
+
+        function checkFutureStartTime(selectedDateStr) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const nowStr = `${year}-${month}-${day} ${hours}:${mins}`;
+
+            const endDistEl = document.getElementById('inp_end_dist');
+            const distEl = document.getElementById('inp_distance');
+
+            if (selectedDateStr && selectedDateStr > nowStr) {
+                // 미래 사전 예약 -> 차단 처리
+                if (endDistEl) {
+                    endDistEl.value = '';
+                    endDistEl.disabled = true;
+                    endDistEl.placeholder = '🔒 미래 예약 (운행 완료 후 [수정]에서 입력)';
+                    endDistEl.style.background = '#e2e8f0';
+                }
+                if (distEl) {
+                    distEl.value = '';
+                    distEl.disabled = true;
+                    distEl.placeholder = '🔒 미래 예약 (입력 불가)';
+                    distEl.style.background = '#e2e8f0';
+                }
+            } else {
+                if (endDistEl) {
+                    endDistEl.disabled = false;
+                    endDistEl.placeholder = '예: 700 (사진 계기판 숫자)';
+                    endDistEl.style.background = '#ffffff';
+                }
+                if (distEl) {
+                    distEl.disabled = false;
+                    distEl.placeholder = '예: 200 (실제 운행 km)';
+                    distEl.style.background = '#ffffff';
+                }
+            }
+        }
 
         const now = new Date();
         const year = now.getFullYear();

@@ -278,7 +278,14 @@ def add_log(vehicle_id):
         'distance': distance
     })
 
-    flash(f'{vehicle.name} 운행일지가 등록되었습니다. (시간: {start_time} ~ {end_time})', 'success')
+    if is_future_booking:
+        if request.form.get('end_distance', '').strip() or request.form.get('distance', '').strip():
+            flash(f"💡 사전 예약 안내: 아직 시작되지 않은 미래 예약 건({start_time[:10]})이므로 주행거리는 선입력되지 않고 [사용 전]으로 저장되었습니다. 운행 완료 후 [수정] 버튼을 눌러 계기판 거리를 기입해 주세요.", 'info')
+        else:
+            flash(f"💡 {vehicle.name} 차량 사전 예약이 완료되었습니다. (예약시간: {start_time} ~ {end_time})", 'success')
+    else:
+        flash(f'{vehicle.name} 운행일지가 성공적으로 등록되었습니다. (시간: {start_time} ~ {end_time})', 'success')
+
     return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
 
