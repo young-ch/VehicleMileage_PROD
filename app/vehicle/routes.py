@@ -313,9 +313,15 @@ def add_log(vehicle_id):
     sync_vehicle_log_distances(vehicle_id)
 
     log_audit('CREATE', 'vehicle_logs', new_log.id, new_values={
-        'vehicle': vehicle.name,
+        'vehicle_name': vehicle.name,
+        'plate_number': vehicle.plate_number,
+        'applicant': applicant,
         'driver': driver,
-        'distance': distance
+        'start_time': start_time,
+        'end_time': end_time,
+        'distance': distance,
+        'purpose': purpose,
+        'notes': notes
     })
 
     if is_future_booking:
@@ -433,9 +439,15 @@ def edit_log(log_id):
     sync_vehicle_log_distances(vehicle_id)
 
     log_audit('UPDATE', 'vehicle_logs', log_item.id, new_values={
-        'end_time': log_item.end_time,
+        'vehicle_name': vehicle.name,
+        'plate_number': vehicle.plate_number,
+        'applicant': log_item.applicant,
         'driver': log_item.driver,
-        'distance': log_item.distance
+        'start_time': log_item.start_time,
+        'end_time': log_item.end_time,
+        'distance': log_item.distance,
+        'purpose': log_item.purpose,
+        'notes': log_item.notes
     })
 
     flash('운행일지 기록이 성공적으로 수정되었습니다.', 'success')

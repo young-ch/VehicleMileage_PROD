@@ -46,8 +46,30 @@
                 </td>
                 <td>{{ log.target_table }} #{{ log.target_id }}</td>
                 <td style="color: var(--text-muted); font-size: 12px;">{{ log.ip_address or '-' }}</td>
-                <td style="font-size: 11px; color: var(--text-secondary); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {% if log.action == 'DELETE' and log.old_values %}
+                <td style="font-size: 12px; color: var(--text-secondary); max-width: 500px; padding: 10px 12px;">
+                    {% set vals = log.old_values if log.action == 'DELETE' else (log.new_values or log.old_values or {}) %}
+                    {% if log.target_table == 'vehicle_logs' or 'vehicle_name' in vals %}
+                    <div style="display: flex; flex-direction: column; gap: 3px;">
+                        <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">
+                            🚘 {{ vals.get('vehicle_name', '차량') }}
+                            {% if vals.get('plate_number') %}({{ vals.get('plate_number') }}){% endif %}
+                            {% if vals.get('applicant') %} | <span style="color: #4ade80;">👤 신청자: {{ vals.get('applicant') }}</span>{% endif %}
+                            {% if vals.get('driver') %}(운전자: {{ vals.get('driver') }}){% endif %}
+                        </div>
+                        {% if vals.get('start_time') %}
+                        <div style="font-size: 11px; color: #94a3b8;">
+                            📅 운행시간: {{ vals.get('start_time') }} ~ {{ vals.get('end_time') }}
+                            {% if vals.get('distance') is not none %} | 🛣️ 주행: {{ vals.get('distance') }} km{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if vals.get('purpose') %}
+                        <div style="font-size: 11px; color: #f1f5f9;">
+                            🎯 <b>용도/사유:</b> <span style="color: #fbbf24; font-weight: 700;">{{ vals.get('purpose') }}</span>
+                            {% if vals.get('notes') %} (비고: {{ vals.get('notes') }}){% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% elif log.action == 'DELETE' and log.old_values %}
                     <span style="color: #ef4444; font-weight:700;">[삭제내역]</span> {{ log.old_values | tojson }}
                     {% elif log.new_values %}
                     {{ log.new_values | tojson }}

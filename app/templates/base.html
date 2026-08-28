@@ -61,13 +61,15 @@
                     </a>
                 </div>
 
-                {% if current_user.is_admin %}
+                {% if current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
                 <div class="nav-section">
                     <div class="nav-section-title">시스템</div>
+                    {% if current_user.is_admin %}
                     <a href="{{ url_for('admin.users') }}" 
                        class="nav-item {{ 'active' if request.endpoint == 'admin.users' }}">
                         <span class="nav-icon">⚙️</span> 사용자 관리
                     </a>
+                    {% endif %}
                     <a href="{{ url_for('admin.audit_logs') }}" 
                        class="nav-item {{ 'active' if request.endpoint == 'admin.audit_logs' }}">
                         <span class="nav-icon">📜</span> 감사 로그
