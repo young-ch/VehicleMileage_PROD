@@ -656,22 +656,37 @@ def export_excel(vehicle_id=None):
         sum_val_cell.alignment = Alignment(horizontal='right', vertical='center')
         ws.row_dimensions[current_row].height = 24
 
-        # 열 너비 자동 조정 (한글 폰트 크기를 감안하여 좀 더 넉넉하게 보정)
+        # 열 너비 보정: 시작시간과 종료시간 동일폭(18) 맞춤, 용도 및 비고 열 넓직하게 확장
         for col in ws.columns:
-            max_len = 0
-            col_letter = get_column_letter(col[0].column)
-            for cell in col:
-                val_str = str(cell.value or '')
-                # 한글은 영문보다 폭을 많이 차지하므로 가중치 적용
-                char_len = 0
-                for char in val_str:
-                    if ord(char) > 127: # 한글/특수문자
-                        char_len += 2.2
-                    else:
-                        char_len += 1.0
-                if char_len > max_len:
-                    max_len = char_len
-            ws.column_dimensions[col_letter].width = max(max_len + 5, 14)
+            col_idx = col[0].column
+            col_letter = get_column_letter(col_idx)
+
+            if col_idx in (1, 2):
+                # ① 시작시간, ② 종료시간: 18로 100% 동일하게 균등 배치
+                ws.column_dimensions[col_letter].width = 18.5
+            elif col_idx in (9, 10):
+                # ⑨ 용도(사유), ⑩ 비고: 텍스트 길이에 맞춰 최소 30/25 이상으로 넉넉하게 확장
+                max_len = 0
+                for cell in col:
+                    if cell.row in (1, 2, current_row):  # 타이틀/정보/합계 병합행 제외
+                        continue
+                    val_str = str(cell.value or '')
+                    char_len = 0
+                    for char in val_str:
+                        if ord(char) > 127:
+                            char_len += 2.2
+                        else:
+                            char_len += 1.0
+                    if char_len > max_len:
+                        max_len = char_len
+                min_w = 32 if col_idx == 9 else 25
+                ws.column_dimensions[col_letter].width = max(max_len + 4, min_w)
+            elif col_idx in (6, 7, 8):
+                ws.column_dimensions[col_letter].width = 16
+            elif col_idx in (3, 4, 5):
+                ws.column_dimensions[col_letter].width = 13
+            else:
+                ws.column_dimensions[col_letter].width = 15
 
     # 기본 생성된 빈 시트 제거
     if default_sheet in wb.worksheets and len(wb.worksheets) > 1:
