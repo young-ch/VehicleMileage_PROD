@@ -529,6 +529,27 @@ def export_excel(vehicle_id=None):
         ws_title = vehicle.name.replace('/', '_')[:30]
         ws = wb.create_sheet(title=ws_title)
 
+        # 1. 상단 엑셀 타이틀 헤더 블록 (Row 1)
+        ws.merge_cells('A1:J1')
+        title_cell = ws.cell(row=1, column=1, value=f"법인차량 운행일지 보고서 - {vehicle.name} ({vehicle.plate_number})")
+        title_cell.font = Font(name='맑은 고딕', size=14, bold=True, color='FFFFFF')
+        title_cell.fill = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
+        title_cell.alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 32
+
+        # 2. 차량 기본 정보 헤더 블록 (Row 2: 차종, 차량번호, 유종, 주의사항)
+        ws.merge_cells('A2:J2')
+        meta_str = f"① 차종: {vehicle.name}   |   ② 차량번호: {vehicle.plate_number}   |   ③ 유종: {vehicle.fuel_type or '경유'}   |   ④ 주의사항: {vehicle.notice or '안전 운행'}"
+        meta_cell = ws.cell(row=2, column=1, value=meta_str)
+        meta_cell.font = Font(name='맑은 고딕', size=10, bold=True, color='0369A1')
+        meta_cell.fill = PatternFill(start_color='E0F2FE', end_color='E0F2FE', fill_type='solid')
+        meta_cell.alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[2].height = 24
+
+        # 3. 공백 구분 행 (Row 3)
+        ws.row_dimensions[3].height = 8
+
+        # 4. 운행일지 표 테이블 헤더 (Row 4)
         headers = [
             '시작시간',
             '종료시간',
@@ -542,17 +563,14 @@ def export_excel(vehicle_id=None):
             '비고'
         ]
 
-        ws.append(headers)
-
-        # 헤더 셀 스타일 적용
-        for col_num in range(1, 11):
-            cell = ws.cell(row=1, column=col_num)
+        for col_idx, h_text in enumerate(headers, 1):
+            cell = ws.cell(row=4, column=col_idx, value=h_text)
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_align
             cell.border = thin_border
 
-        ws.row_dimensions[1].height = 26
+        ws.row_dimensions[4].height = 26
 
         sync_vehicle_log_distances(vehicle.id)
         ready_map = get_start_dist_ready_map(vehicle.id)
@@ -566,7 +584,7 @@ def export_excel(vehicle_id=None):
         logs = query.order_by(VehicleLog.start_time.asc()).all()
 
         v_total_dist = 0.0
-        current_row = 2
+        current_row = 5
 
         for log in logs:
             start_dist_val = log.start_distance if ready_map.get(log.id) else "-[이전 운행 마감 대기]-"
