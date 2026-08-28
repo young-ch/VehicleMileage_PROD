@@ -295,17 +295,20 @@ def delete(id):
 
 
 @personnel_bp.route('/export')
+@personnel_bp.route('/export-excel')
 @login_required
 @role_required('admin', 'manager')
 def export_csv():
-    """인원 목록을 엑셀(CSV)로 내보내기 (검색 및 필터 연동)"""
+    """인원 목록을 고품질 엑셀(.xlsx) 보고서로 내보내기 (검색 및 필터 연동, 고급 스타일 적용)"""
     import io
-    import csv
-    
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from flask import send_file
+
     search = request.args.get('search', '')
     dept_filter = request.args.get('department', '', type=str)
     status_filter = request.args.get('status', '')
-    
+
     query = Personnel.query
     if search:
         query = query.filter(
@@ -318,31 +321,142 @@ def export_csv():
         query = query.filter(Personnel.department_id == int(dept_filter))
     if status_filter:
         query = query.filter(Personnel.status == status_filter)
-        
+
     personnel_list = query.order_by(Personnel.status.asc(), Personnel.name.asc()).all()
-    
-    # 메모리 버퍼 생성 및 한글 깨짐 방지용 BOM(UTF-8-SIG) 헤더 작성
-    output = io.StringIO()
-    output.write('\ufeff')
-    
-    writer = csv.writer(output)
-    # 엑셀 첫 행 헤더 작성
-    writer.writerow(['사용 아이디', '성명', '지역 / 부서', '직위', '상태', '입사일자', '퇴사일자'])
-    
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "인원현황보고서"
+
+    # 스타일 설정
+    header_font = Font(name='맑은 고딕', size=10, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
+    header_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    meta_font = Font(name='맑은 고딕', size=10, bold=True, color='0369A1')
+    meta_fill = PatternFill(start_color='E0F2FE', end_color='E0F2FE', fill_type='solid')
+
+    summary_font = Font(name='맑은 고딕', size=11, bold=True, color='0F172A')
+    summary_fill = PatternFill(start_color='E2E8F0', end_color='E2E8F0', fill_type='solid')
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    # 1. 상단 엑셀 타이틀 헤더 블록 (Row 1)
+    ws.merge_cells('A1:G1')
+    title_cell = ws.cell(row=1, column=1, value=f"SMU Jira 인원 현황 보고서 (총 {len(personnel_list)}명)")
+    title_cell.font = Font(name='맑은 고딕', size=14, bold=True, color='FFFFFF')
+    title_cell.fill = header_fill
+    title_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 32
+
+    # 2. 메타 정보 헤더 블록 (Row 2)
+    ws.merge_cells('A2:G2')
+    dept_obj = Department.query.get(int(dept_filter)) if dept_filter else None
+    dept_label = f"부서: {dept_obj.name}" if dept_obj else "전체 부서"
+    status_label = f"상태: {status_filter}" if status_filter else "전체 상태"
+    meta_text = f"① 출력일시: {now_str}   |   ② 조회 필터: {dept_label}, {status_label}   |   ③ 출력 권한자: {current_user.username}"
+    meta_cell = ws.cell(row=2, column=1, value=meta_text)
+    meta_cell.font = meta_font
+    meta_cell.fill = meta_fill
+    meta_cell.alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[2].height = 24
+
+    # 3. 공백 구분 행 (Row 3)
+    ws.row_dimensions[3].height = 8
+
+    # 4. 표 헤더 행 (Row 4)
+    headers = ['사용 아이디(사번)', '성명', '지역 / 부서', '직위 / 직급', '상태', '입사일자', '퇴사일자']
+    for col_idx, h_text in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx, value=h_text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+        cell.border = thin_border
+    ws.row_dimensions[4].height = 26
+
+    # 5. 데이터 행 추가
+    current_row = 5
+    active_cnt = 0
+    leave_cnt = 0
+    retire_cnt = 0
+
     for p in personnel_list:
-        status_text = '재직' if p.status == 'active' else '퇴직'
-        writer.writerow([
-            p.employee_id,
-            p.name,
-            p.department_name,
+        if p.status == 'active':
+            status_text = '재직'
+            active_cnt += 1
+        elif p.status == 'leave':
+            status_text = '휴직'
+            leave_cnt += 1
+        else:
+            status_text = '퇴직'
+            retire_cnt += 1
+
+        join_str = p.join_date.strftime('%Y-%m-%d') if p.join_date else ''
+        leave_str = p.leave_date.strftime('%Y-%m-%d') if p.leave_date else '-'
+
+        row_data = [
+            p.employee_id or '',
+            p.name or '',
+            p.department_name or '',
             p.position or '',
             status_text,
-            p.join_date.strftime('%Y-%m-%d') if p.join_date else '',
-            p.leave_date.strftime('%Y-%m-%d') if p.leave_date else ''
-        ])
-        
-    from flask import Response
-    response = Response(output.getvalue(), mimetype='text/csv')
-    filename = f"smu_personnel_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-    return response
+            join_str,
+            leave_str
+        ]
+
+        for col_idx, val in enumerate(row_data, 1):
+            cell = ws.cell(row=current_row, column=col_idx, value=val)
+            cell.font = Font(name='맑은 고딕', size=10)
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+            # 퇴직자 행 은은한 배경색 표시
+            if p.status == 'inactive':
+                cell.fill = PatternFill(start_color='F8FAFC', end_color='F8FAFC', fill_type='solid')
+
+        ws.row_dimensions[current_row].height = 22
+        current_row += 1
+
+    # 6. 하단 통계 합계 행 (Row current_row)
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=7)
+    sum_text = f"[인원 집계 합계] 재직: {active_cnt}명  /  휴직: {leave_cnt}명  /  퇴직: {retire_cnt}명  (총 {len(personnel_list)}명)"
+    sum_cell = ws.cell(row=current_row, column=1, value=sum_text)
+    sum_cell.font = summary_font
+    sum_cell.fill = summary_fill
+    sum_cell.alignment = Alignment(horizontal='center', vertical='center')
+    for col_idx in range(1, 8):
+        ws.cell(row=current_row, column=col_idx).border = thin_border
+    ws.row_dimensions[current_row].height = 26
+
+    # 7. 컬럼 열 너비 설정
+    col_widths = {
+        'A': 18,  # 사번
+        'B': 14,  # 성명
+        'C': 24,  # 부서
+        'D': 16,  # 직위
+        'E': 12,  # 상태
+        'F': 16,  # 입사일자
+        'G': 16   # 퇴사일자
+    }
+    for col_letter, width in col_widths.items():
+        ws.column_dimensions[col_letter].width = width
+
+    # 파일 다운로드 응답 생성
+    excel_io = io.BytesIO()
+    wb.save(excel_io)
+    excel_io.seek(0)
+
+    filename = f"smu_personnel_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return send_file(
+        excel_io,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
