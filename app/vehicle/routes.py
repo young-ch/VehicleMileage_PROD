@@ -231,9 +231,9 @@ def add_log(vehicle_id):
     dist_input = request.form.get('distance', '').strip()
 
     # 요청 1: 미래 사전 예약 건인 경우 주행 후 계기판 거리 / 주행거리 선입력 차단 및 경고
-    if is_future_booking and (end_dist_input or dist_input):
+    if is_future_booking and (end_dist_input != '' or dist_input != ''):
         session['add_log_form_data'] = request.form.to_dict()
-        flash('⚠️ 등록 차단: 운행 완료 후 [수정] 버튼에서 기입해 주세요.', 'danger')
+        flash('⚠️ 등록 차단: 아직 시작되지 않은 미래 사전 예약 건은 주행 후 계기판 거리를 미리 선입력할 수 없습니다. 운행 완료 후 [수정] 버튼에서 기입해 주세요.', 'danger')
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     try:
@@ -358,6 +358,16 @@ def edit_log(log_id):
 
     dist_val = request.form.get('distance', '').strip()
     end_dist_val = request.form.get('end_distance', '').strip()
+
+    # 미래 예약 건인 경우 수정 시 주행 후 거리 기입 차단
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+    is_edit_future = (new_start_time > now_str)
+
+    if is_edit_future and (end_dist_val != '' or dist_val != ''):
+        session['edit_log_form_data'] = request.form.to_dict()
+        session['edit_log_id'] = log_id
+        flash('⚠️ 수정 차단: 아직 시작되지 않은 미래 사전 예약 건은 주행 후 계기판 거리를 기입할 수 없습니다. 실제 운행 완료 후 기입해 주세요.', 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
     if end_dist_val != '':
         try:

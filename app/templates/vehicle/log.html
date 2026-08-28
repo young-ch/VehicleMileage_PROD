@@ -818,8 +818,28 @@
             const distEl = document.getElementById('edit_distance');
             if (distEl) distEl.value = (distance && distance !== '0') ? distance : '';
 
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const nowStr = `${year}-${month}-${day} ${hours}:${mins}`;
+
             const endDistEl = document.getElementById('edit_end_distance');
-            if (endDistEl) endDistEl.value = (endDistance && endDistance !== '0') ? endDistance : '';
+            if (endDistEl) {
+                if (cleanStartTime && cleanStartTime > nowStr) {
+                    endDistEl.value = '';
+                    endDistEl.disabled = true;
+                    endDistEl.placeholder = '🔒 미래 사전 예약 (운행 완료 후 입력 가능)';
+                    endDistEl.style.background = '#e2e8f0';
+                } else {
+                    endDistEl.disabled = false;
+                    endDistEl.placeholder = '도착 후 계기판 수치 (예: 700)';
+                    endDistEl.style.background = '#ffffff';
+                    endDistEl.value = (endDistance && endDistance !== '0') ? endDistance : '';
+                }
+            }
 
             const startDistEl = document.getElementById('edit_start_dist_hidden');
             if (startDistEl) startDistEl.value = startDistance || 0;
