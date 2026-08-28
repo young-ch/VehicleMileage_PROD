@@ -227,20 +227,35 @@ def add_log(vehicle_id):
     now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
     is_future_booking = (start_time > now_str)
 
+    end_dist_input = request.form.get('end_distance', '').strip()
+    dist_input = request.form.get('distance', '').strip()
+
+    # 요청 1: 미래 사전 예약 건인 경우 주행 후 계기판 거리 / 주행거리 선입력 차단 및 경고
+    if is_future_booking and (end_dist_input or dist_input):
+        session['add_log_form_data'] = request.form.to_dict()
+        flash('⚠️ 등록 차단: 운행 완료 후 [수정] 버튼에서 기입해 주세요.', 'danger')
+        return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
     try:
         start_distance = float(request.form.get('start_distance', 0) or 0)
-        end_dist_input = request.form.get('end_distance', '').strip()
-        dist_input = request.form.get('distance', '').strip()
 
-        # 미래 예약 건인 경우 주행거리 선입력 차단 (운행 완료 후 수정에서 기입)
         if is_future_booking:
             distance = 0.0
             end_distance = start_distance
         elif end_dist_input != '':
             end_distance = float(end_dist_input)
-            distance = max(end_distance - start_distance, 0.0)
+            # 요청 2: 주행 후 거리가 기존 주행 전 거리보다 작은 경우 차단
+            if end_distance < start_distance:
+                session['add_log_form_data'] = request.form.to_dict()
+                flash(f'⚠️ 등록 차단: 입력하신 주행 후 계기판 거리({end_distance:,.1f} km)는 주행 전 거리({start_distance:,.1f} km)보다 작을 수 없습니다.', 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+            distance = end_distance - start_distance
         elif dist_input != '':
             distance = float(dist_input)
+            if distance < 0:
+                session['add_log_form_data'] = request.form.to_dict()
+                flash('⚠️ 등록 차단: 주행거리는 0km 이상이어야 합니다.', 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
             end_distance = start_distance + distance
         else:
             distance = 0.0
@@ -279,10 +294,7 @@ def add_log(vehicle_id):
     })
 
     if is_future_booking:
-        if request.form.get('end_distance', '').strip() or request.form.get('distance', '').strip():
-            flash(f"💡 사전 예약 안내: 아직 시작되지 않은 미래 예약 건({start_time[:10]})이므로 주행거리는 선입력되지 않고 [사용 전]으로 저장되었습니다. 운행 완료 후 [수정] 버튼을 눌러 계기판 거리를 기입해 주세요.", 'info')
-        else:
-            flash(f"💡 {vehicle.name} 차량 사전 예약이 완료되었습니다. (예약시간: {start_time} ~ {end_time})", 'success')
+        flash(f"💡 {vehicle.name} 차량 사전 예약이 완료되었습니다. (예약시간: {start_time} ~ {end_time})", 'success')
     else:
         flash(f'{vehicle.name} 운행일지가 성공적으로 등록되었습니다. (시간: {start_time} ~ {end_time})', 'success')
 
@@ -350,13 +362,24 @@ def edit_log(log_id):
     if end_dist_val != '':
         try:
             new_end_dist = float(end_dist_val)
+            # 요청 2: 주행 후 계기판 거리가 기존 주행 전 거리보다 작을 경우 수정 차단 및 경고
+            if new_end_dist < log_item.start_distance:
+                session['edit_log_form_data'] = request.form.to_dict()
+                session['edit_log_id'] = log_id
+                flash(f"⚠️ 수정 차단: 입력하신 주행 후 계기판 거리({new_end_dist:,.1f} km)는 주행 전 거리({log_item.start_distance:,.1f} km)보다 작을 수 없습니다.", 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
             log_item.end_distance = new_end_dist
-            log_item.distance = max(new_end_dist - log_item.start_distance, 0.0)
+            log_item.distance = new_end_dist - log_item.start_distance
         except ValueError:
             pass
     elif dist_val != '':
         try:
             new_distance = float(dist_val)
+            if new_distance < 0:
+                session['edit_log_form_data'] = request.form.to_dict()
+                session['edit_log_id'] = log_id
+                flash('⚠️ 수정 차단: 주행거리는 0km 이상이어야 합니다.', 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
             log_item.distance = new_distance
             log_item.end_distance = log_item.start_distance + new_distance
         except ValueError:
