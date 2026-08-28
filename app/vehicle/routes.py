@@ -445,20 +445,34 @@ def edit_log(log_id):
 @vehicle_bp.route('/log/<int:log_id>/delete', methods=['POST'])
 @login_required
 def delete_log(log_id):
-    """잘못 입력된 운행일지 리스트 항목 삭제"""
+    """잘못 입력된 운행일지 리스트 항목 삭제 (감사 로그 자동 기록 포함)"""
     log_item = VehicleLog.query.get_or_404(log_id)
     vehicle_id = log_item.vehicle_id
+    vehicle = Vehicle.query.get(vehicle_id)
 
+    # 삭제 시 해당 일지의 모든 세부 기록을 감사 로그(Audit Log)에 보존 기록
     log_audit('DELETE', 'vehicle_logs', log_item.id, old_values={
+        'vehicle_name': vehicle.name if vehicle else '',
+        'plate_number': vehicle.plate_number if vehicle else '',
+        'start_time': log_item.start_time,
+        'end_time': log_item.end_time,
+        'department': log_item.department,
         'applicant': log_item.applicant,
-        'distance': log_item.distance
+        'driver': log_item.driver,
+        'start_distance': log_item.start_distance,
+        'end_distance': log_item.end_distance,
+        'distance': log_item.distance,
+        'purpose': log_item.purpose,
+        'notes': log_item.notes,
+        'deleted_by_user': getattr(current_user, 'username', '사용자미상'),
+        'deleted_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
 
     db.session.delete(log_item)
     db.session.commit()
     sync_vehicle_log_distances(vehicle_id)
 
-    flash('운행일지 기록이 삭제되었습니다.', 'warning')
+    flash('운행일지 기록이 성공적으로 삭제되었으며 감사 로그에 자동 채증되었습니다.', 'warning')
     return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
 

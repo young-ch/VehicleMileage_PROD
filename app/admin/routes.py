@@ -1,6 +1,6 @@
 """관리자 라우트 - 사용자 관리, 역할 관리"""
 from flask import render_template, redirect, url_for, flash, request, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from ..extensions import db
 from ..models.user import User, Role
 from ..utils.decorators import role_required
@@ -64,9 +64,11 @@ def toggle_active(id):
 
 @admin_bp.route('/audit')
 @login_required
-@role_required('admin')
 def audit_logs():
-    """감사 로그 조회"""
+    """감사 로그 조회 (최고 관리자 및 차량 관리자 전용)"""
+    if not (current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage')):
+        flash('관리자 또는 차량관리자 권한이 필요합니다.', 'danger')
+        return redirect(url_for('main.dashboard'))
     from ..models.audit import AuditLog
     
     page = request.args.get('page', 1, type=int)
