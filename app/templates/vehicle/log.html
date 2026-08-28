@@ -220,7 +220,11 @@
         <h2>🚗 법인차량 운행일지</h2>
         <p>차량별 운행 기록을 일지 형태로 작성하고 누적 주행거리를 관리합니다</p>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" style="display: flex; align-items: center; gap: 8px;">
+        <span id="auto-refresh-badge" style="font-size: 11px; padding: 6px 12px; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.3); color: #4ade80; border-radius: 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;" title="클릭하여 자동 새로고침 켜기/끄기" onclick="toggleAutoRefresh()">
+            <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
+            실시간 자동 갱신 (<span id="refresh-counter">30</span>초)
+        </span>
         <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()"
             style="background:#1e293b; border-color:#334155; color:#38bdf8;">
             📥 엑셀 출력 (.xlsx)
@@ -968,15 +972,85 @@
         {% if edit_form_data and edit_log_id %}
         openLogItemEditModal(
             {{ edit_log_id }},
-        '{{ edit_form_data.get("start_time", "") }}',
-        '{{ edit_form_data.get("end_time", "") }}',
-        '{{ edit_form_data.get("applicant", "") }}',
-        '{{ edit_form_data.get("driver", "") }}',
-        '{{ edit_form_data.get("distance", "0") }}',
-        '{{ edit_form_data.get("purpose", "") }}',
-        '{{ edit_form_data.get("notes", "") }}'
-    );
-    {% endif %}
+            '{{ edit_form_data.get("start_time", "") }}',
+            '{{ edit_form_data.get("end_time", "") }}',
+            '{{ edit_form_data.get("applicant", "") }}',
+            '{{ edit_form_data.get("driver", "") }}',
+            '{{ edit_form_data.get("distance", "0") }}',
+            '{{ edit_form_data.get("purpose", "") }}',
+            '{{ edit_form_data.get("notes", "") }}'
+        );
+        {% endif %}
     });
+
+    // 30초 실시간 스마트 자동 새로고침 (작업 중일 때는 일시정지)
+    let autoRefreshSec = 30;
+    let autoRefreshEnabled = true;
+
+    function toggleAutoRefresh() {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        const badge = document.getElementById('auto-refresh-badge');
+        if (badge) {
+            if (autoRefreshEnabled) {
+                badge.style.background = 'rgba(34, 197, 94, 0.12)';
+                badge.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                badge.style.color = '#4ade80';
+                badge.innerHTML = `<span style="width:8px; height:8px; background:#22c55e; border-radius:50%; display:inline-block; box-shadow:0 0 8px #22c55e;"></span> 실시간 자동 갱신 (<span id="refresh-counter">${autoRefreshSec}</span>초)`;
+            } else {
+                badge.style.background = 'rgba(148, 163, 184, 0.12)';
+                badge.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+                badge.style.color = '#94a3b8';
+                badge.innerHTML = `<span style="width:8px; height:8px; background:#94a3b8; border-radius:50%; display:inline-block;"></span> 자동 갱신 일시정지`;
+            }
+        }
+    }
+
+    setInterval(() => {
+        if (!autoRefreshEnabled) return;
+
+        // 사용자가 이용 중인지 3가지 감지:
+        // 1. 현재 입력창/선택상자에 커서가 닿아있는지 (isFocused)
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        const isFocused = ['input', 'textarea', 'select'].includes(activeTag);
+
+        // 2. 신규 운행일지 폼에 사용자가 작성 중인 텍스트가 남아있는지 (hasFormContent)
+        const appInp = document.getElementById('inp_applicant');
+        const drvInp = document.getElementById('inp_driver');
+        const purpInp = document.getElementById('inp_purpose');
+        const noteInp = document.getElementById('inp_notes');
+        const hasFormContent = (appInp && appInp.value.trim() !== '') ||
+                               (drvInp && drvInp.value.trim() !== '') ||
+                               (purpInp && purpInp.value.trim() !== '') ||
+                               (noteInp && noteInp.value.trim() !== '');
+
+        // 3. 모달/팝업 창(수정창, 엑셀창, 차량등록창, 관리자창)이 열려있는지 (isModalOpen)
+        const editPanel = document.getElementById('log-item-edit-panel');
+        const isEditing = editPanel && editPanel.style.display !== 'none' && editPanel.style.display !== '';
+
+        const excelPanel = document.getElementById('excel-export-panel');
+        const isExcelOpen = excelPanel && excelPanel.style.display !== 'none' && excelPanel.style.display !== '';
+
+        const addVehiclePanel = document.getElementById('add-vehicle-panel');
+        const isAddVehicleOpen = addVehiclePanel && addVehiclePanel.style.display !== 'none' && addVehiclePanel.style.display !== '';
+
+        const adminEditPanel = document.getElementById('admin-edit-panel');
+        const isAdminEditOpen = adminEditPanel && adminEditPanel.style.display !== 'none' && adminEditPanel.style.display !== '';
+
+        if (isFocused || hasFormContent || isEditing || isExcelOpen || isAddVehicleOpen || isAdminEditOpen) {
+            const counterEl = document.getElementById('refresh-counter');
+            if (counterEl) counterEl.innerText = '작업 중';
+            return; // 카운트다운 차감 및 새로고침 일시정지!
+        }
+
+        autoRefreshSec--;
+        const counterEl = document.getElementById('refresh-counter');
+        if (counterEl) {
+            counterEl.innerText = autoRefreshSec;
+        }
+
+        if (autoRefreshSec <= 0) {
+            location.reload();
+        }
+    }, 1000);
 </script>
 {% endblock %}
