@@ -74,13 +74,21 @@ def sync_vehicle_log_distances(vehicle_id):
 
     current_odometer = None
     for log in logs:
+        # 이전 운행 건의 최종 계기판 거리를 현재 주행 전 거리(start_distance)로 전이
         if current_odometer is not None:
             log.start_distance = current_odometer
-        if log.distance and log.distance > 0:
+
+        # 주행 후 계기판 거리가 이미 기입되어 있고 주행 전 거리보다 큰 경우:
+        # 계기판 최종 수치를 고정 기준값으로 두고 주행거리(distance)를 재계산!
+        if log.end_distance and log.end_distance > log.start_distance:
+            log.distance = max(log.end_distance - log.start_distance, 0.0)
+            current_odometer = log.end_distance
+        elif log.distance and log.distance > 0:
             log.end_distance = log.start_distance + log.distance
             current_odometer = log.end_distance
         else:
             log.end_distance = log.start_distance
+            log.distance = 0.0
     db.session.commit()
 
 
