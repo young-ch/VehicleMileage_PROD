@@ -9,7 +9,7 @@
     </div>
     {% if current_user.is_manager %}
     <div class="btn-group">
-        <a href="{{ url_for('personnel.export_csv', search=search, department=dept_filter, status=status_filter) }}" class="btn btn-secondary">📥 엑셀 다운로드</a>
+        <button type="button" onclick="openPersonnelExcelModal()" class="btn btn-secondary">📥 엑셀 다운로드</button>
         <a href="{{ url_for('personnel.retire') }}" class="btn btn-danger">🚪 퇴사 처리</a>
         <a href="{{ url_for('personnel.create') }}" class="btn btn-primary">➕ 신입 등록</a>
     </div>
@@ -166,4 +166,90 @@
     {% endif %}
 </div>
 {% endif %}
+
+<!-- 인원 현황 엑셀 다운로드 날짜/부서 선택 모달 팝업 -->
+<div id="exportPersonnelExcelModal" class="modal"
+    style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);">
+    <div class="modal-content card"
+        style="max-width: 520px; margin: 80px auto; background: var(--bg-card); border: 2px solid var(--accent-primary); border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+        <div class="card-header"
+            style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding: 14px 20px;">
+            <h3 class="card-title"
+                style="margin: 0; font-size: 16px; font-weight: 800; color: var(--accent-primary);">
+                📥 인원 현황 엑셀 다운로드 설정
+            </h3>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="closePersonnelExcelModal()"
+                style="padding: 2px 8px;">✕</button>
+        </div>
+        <div style="padding: 20px;">
+            <form id="frm-personnel-export" method="GET" action="{{ url_for('personnel.export_csv') }}">
+                <input type="hidden" name="search" value="{{ search }}">
+
+                <div class="form-group mb-3">
+                    <label class="form-label"
+                        style="font-weight: 700; font-size: 13px; color: var(--text-secondary);">📅 입사/변동
+                        시작일자 (선택)</label>
+                    <input type="date" name="start_date" class="form-control" placeholder="YYYY-MM-DD">
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label"
+                        style="font-weight: 700; font-size: 13px; color: var(--text-secondary);">📅 입사/변동
+                        종료일자 (선택)</label>
+                    <input type="date" name="end_date" class="form-control" placeholder="YYYY-MM-DD">
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label"
+                        style="font-weight: 700; font-size: 13px; color: var(--text-secondary);">🏢 부서
+                        선택</label>
+                    <select name="department" class="form-control">
+                        <option value="">전체 부서</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {{ 'selected' if dept_filter==d.id|string }}>{{
+                            d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label"
+                        style="font-weight: 700; font-size: 13px; color: var(--text-secondary);">📋 재직
+                        상태 선택</label>
+                    <select name="status" class="form-control">
+                        <option value="">전체 상태 (재직 + 퇴직)</option>
+                        <option value="active" {{ 'selected' if status_filter=='active' }}>재직자만</option>
+                        <option value="inactive" {{ 'selected' if status_filter=='inactive' }}>퇴직자만
+                        </option>
+                        <option value="leave" {{ 'selected' if status_filter=='leave' }}>휴직자만</option>
+                    </select>
+                </div>
+
+                <div class="alert alert-info mb-3"
+                    style="font-size: 12px; padding: 10px 14px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; border-radius: 6px;">
+                    💡 <b>팁</b>: 날짜를 지정하지 않고 [📥 엑셀 출력 실행]을 클릭하시면 전체 기간의 인원 현황 데이터가 100% 모조리 출력됩니다.
+                </div>
+
+                <div class="btn-group"
+                    style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closePersonnelExcelModal()">취소</button>
+                    <button type="submit" class="btn btn-primary"
+                        onclick="closePersonnelExcelModal()">📥 엑셀 출력 실행</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPersonnelExcelModal() {
+        const modal = document.getElementById('exportPersonnelExcelModal');
+        if (modal) modal.style.display = 'block';
+    }
+    function closePersonnelExcelModal() {
+        const modal = document.getElementById('exportPersonnelExcelModal');
+        if (modal) modal.style.display = 'none';
+    }
+</script>
 {% endblock %}

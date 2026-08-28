@@ -299,7 +299,7 @@ def delete(id):
 @login_required
 @role_required('admin', 'manager')
 def export_csv():
-    """인원 목록을 고품질 엑셀(.xlsx) 보고서로 내보내기 (검색 및 필터 연동, 고급 스타일 적용)"""
+    """인원 목록을 고품질 엑셀(.xlsx) 보고서로 내보내기 (검색, 날짜 범위 및 필터 연동, 고급 스타일 적용)"""
     import io
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -308,6 +308,8 @@ def export_csv():
     search = request.args.get('search', '')
     dept_filter = request.args.get('department', '', type=str)
     status_filter = request.args.get('status', '')
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
 
     query = Personnel.query
     if search:
@@ -321,6 +323,16 @@ def export_csv():
         query = query.filter(Personnel.department_id == int(dept_filter))
     if status_filter:
         query = query.filter(Personnel.status == status_filter)
+
+    # 날짜 범위 필터링 (입사일자/변동일자 기준)
+    if start_date:
+        parsed_start = parse_date(start_date)
+        if parsed_start:
+            query = query.filter(Personnel.join_date >= parsed_start)
+    if end_date:
+        parsed_end = parse_date(end_date)
+        if parsed_end:
+            query = query.filter(Personnel.join_date <= parsed_end)
 
     personnel_list = query.order_by(Personnel.status.asc(), Personnel.name.asc()).all()
 
@@ -361,7 +373,8 @@ def export_csv():
     dept_obj = Department.query.get(int(dept_filter)) if dept_filter else None
     dept_label = f"부서: {dept_obj.name}" if dept_obj else "전체 부서"
     status_label = f"상태: {status_filter}" if status_filter else "전체 상태"
-    meta_text = f"① 출력일시: {now_str}   |   ② 조회 필터: {dept_label}, {status_label}   |   ③ 출력 권한자: {current_user.username}"
+    period_label = f"기간: {start_date} ~ {end_date}" if (start_date or end_date) else "전체 기간"
+    meta_text = f"① 출력일시: {now_str}   |   ② 필터: {dept_label}, {status_label}, {period_label}   |   ③ 출력 권한자: {current_user.username}"
     meta_cell = ws.cell(row=2, column=1, value=meta_text)
     meta_cell.font = meta_font
     meta_cell.fill = meta_fill
