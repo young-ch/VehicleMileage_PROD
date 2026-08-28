@@ -671,6 +671,7 @@
                 <input type="text" name="driver" id="edit_driver" class="form-control" placeholder="운전자 성명">
             </div>
             <input type="hidden" id="edit_start_dist_hidden" value="0">
+            <input type="hidden" name="distance" id="edit_distance" value="">
             <div class="form-group">
                 <label class="form-label">⑥ 주행 후 계기판 거리 (km)</label>
                 <input type="number" step="0.1" name="end_distance" id="edit_end_distance" class="form-control"
@@ -804,13 +805,26 @@
                 endInp.value = cleanEndTime;
             }
 
-            document.getElementById('edit_applicant').value = applicant || '';
-            document.getElementById('edit_driver').value = driver || '';
-            document.getElementById('edit_distance').value = (distance && distance !== '0') ? distance : '';
-            document.getElementById('edit_end_distance').value = (endDistance && endDistance !== '0') ? endDistance : '';
-            document.getElementById('edit_start_dist_hidden').value = startDistance || 0;
-            document.getElementById('edit_purpose').value = purpose || '';
-            document.getElementById('edit_notes').value = notes || '';
+            const appEl = document.getElementById('edit_applicant');
+            if (appEl) appEl.value = applicant || '';
+
+            const drvEl = document.getElementById('edit_driver');
+            if (drvEl) drvEl.value = driver || '';
+
+            const distEl = document.getElementById('edit_distance');
+            if (distEl) distEl.value = (distance && distance !== '0') ? distance : '';
+
+            const endDistEl = document.getElementById('edit_end_distance');
+            if (endDistEl) endDistEl.value = (endDistance && endDistance !== '0') ? endDistance : '';
+
+            const startDistEl = document.getElementById('edit_start_dist_hidden');
+            if (startDistEl) startDistEl.value = startDistance || 0;
+
+            const purpEl = document.getElementById('edit_purpose');
+            if (purpEl) purpEl.value = purpose || '';
+
+            const noteEl = document.getElementById('edit_notes');
+            if (noteEl) noteEl.value = notes || '';
 
             panel.style.display = 'block';
             panel.scrollIntoView({ behavior: 'smooth' });
