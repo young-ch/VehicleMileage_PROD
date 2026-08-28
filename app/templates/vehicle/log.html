@@ -223,7 +223,7 @@
     <div class="btn-group" style="display: flex; align-items: center; gap: 8px;">
         <span id="auto-refresh-badge" style="font-size: 11px; padding: 6px 12px; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.3); color: #4ade80; border-radius: 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;" title="클릭하여 자동 새로고침 켜기/끄기" onclick="toggleAutoRefresh()">
             <span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
-            실시간 자동 갱신 (<span id="refresh-counter">30</span>초)
+            실시간 자동 갱신 (<span id="refresh-counter">20</span>초)
         </span>
         <button type="button" class="btn btn-secondary" onclick="toggleExcelExportModal()"
             style="background:#1e293b; border-color:#334155; color:#38bdf8;">
@@ -526,10 +526,7 @@
                 <input type="text" name="notes" class="form-control"
                     value="{{ form_data.get('notes', '') if form_data else '' }}" placeholder="충전/이상유무">
             </div>
-            
-            <div class="alert alert-info mb-2" style="font-size: 11px; padding: 8px 12px; grid-column: span 4; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); color: #38bdf8; border-radius: 6px; margin-top: 4px;">
-                💡 <b>운행 안내</b>: 아직 시작되지 않은 미래 사전 예약 건은 주행거리가 선입력되지 않으며, 실제 운행 완료 후 목록 우측의 [수정] 버튼을 눌러 계기판 거리를 기입해 주시면 됩니다.
-            </div>
+        </div>
         </div>
     </form>
 </div>
@@ -983,8 +980,8 @@
         {% endif %}
     });
 
-    // 30초 실시간 스마트 자동 새로고침 (작업 중일 때는 일시정지)
-    let autoRefreshSec = 30;
+    // 20초 실시간 스마트 자동 새로고침 (작업 중일 때는 일시정지)
+    let autoRefreshSec = 20;
     let autoRefreshEnabled = true;
 
     function toggleAutoRefresh() {
