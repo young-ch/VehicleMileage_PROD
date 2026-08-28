@@ -522,6 +522,10 @@
                 <input type="text" name="notes" class="form-control"
                     value="{{ form_data.get('notes', '') if form_data else '' }}" placeholder="충전/이상유무">
             </div>
+            
+            <div class="alert alert-info mb-2" style="font-size: 11px; padding: 8px 12px; grid-column: span 4; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); color: #38bdf8; border-radius: 6px; margin-top: 4px;">
+                💡 <b>운행 안내</b>: 아직 시작되지 않은 미래 사전 예약 건은 주행거리가 선입력되지 않으며, 실제 운행 완료 후 목록 우측의 [수정] 버튼을 눌러 계기판 거리를 기입해 주시면 됩니다.
+            </div>
         </div>
     </form>
 </div>

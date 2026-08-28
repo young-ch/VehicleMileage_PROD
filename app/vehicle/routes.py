@@ -224,12 +224,19 @@ def add_log(vehicle_id):
         )
         return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
 
+    now_str = datetime.now().strftime('%Y-%m-%d %H:%M')
+    is_future_booking = (start_time > now_str)
+
     try:
         start_distance = float(request.form.get('start_distance', 0) or 0)
         end_dist_input = request.form.get('end_distance', '').strip()
         dist_input = request.form.get('distance', '').strip()
 
-        if end_dist_input != '':
+        # 미래 예약 건인 경우 주행거리 선입력 차단 (운행 완료 후 수정에서 기입)
+        if is_future_booking:
+            distance = 0.0
+            end_distance = start_distance
+        elif end_dist_input != '':
             end_distance = float(end_dist_input)
             distance = max(end_distance - start_distance, 0.0)
         elif dist_input != '':
