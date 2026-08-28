@@ -226,12 +226,23 @@ def add_log(vehicle_id):
 
     try:
         start_distance = float(request.form.get('start_distance', 0) or 0)
-        distance = float(request.form.get('distance', 0) or 0)
+        end_dist_input = request.form.get('end_distance', '').strip()
+        dist_input = request.form.get('distance', '').strip()
+
+        if end_dist_input != '':
+            end_distance = float(end_dist_input)
+            distance = max(end_distance - start_distance, 0.0)
+        elif dist_input != '':
+            distance = float(dist_input)
+            end_distance = start_distance + distance
+        else:
+            distance = 0.0
+            end_distance = start_distance
     except ValueError:
         start_distance = 0.0
         distance = 0.0
+        end_distance = 0.0
 
-    end_distance = start_distance + distance
     purpose = request.form.get('purpose', '').strip()
     notes = request.form.get('notes', '').strip()
 
@@ -320,7 +331,16 @@ def edit_log(log_id):
         log_item.notes = request.form.get('notes', '').strip()
 
     dist_val = request.form.get('distance', '').strip()
-    if dist_val != '':
+    end_dist_val = request.form.get('end_distance', '').strip()
+
+    if end_dist_val != '':
+        try:
+            new_end_dist = float(end_dist_val)
+            log_item.end_distance = new_end_dist
+            log_item.distance = max(new_end_dist - log_item.start_distance, 0.0)
+        except ValueError:
+            pass
+    elif dist_val != '':
         try:
             new_distance = float(dist_val)
             log_item.distance = new_distance
@@ -595,12 +615,12 @@ def export_excel(vehicle_id=None):
                 v_total_dist += log.distance
             else:
                 if log.start_time and now_str < log.start_time:
-                    end_dist_val = "-[사용 전]-"
+                    dist_val = "-[사용 전]-"
                 elif log.end_time and now_str > log.end_time:
-                    end_dist_val = "-[거리 미입력]-"
+                    dist_val = "-[거리 미입력]-"
                 else:
-                    end_dist_val = "-[운행 중]-"
-                dist_val = "-"
+                    dist_val = "-[운행 중]-"
+                end_dist_val = "-"
 
             row_data = [
                 log.start_time or '',

@@ -493,16 +493,17 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">⑥ 주행거리 (km)</label>
+                <label class="form-label">⑥ 이동 주행거리 (km)</label>
                 <input type="number" step="0.1" name="distance" id="inp_distance" class="form-control"
-                    value="{{ form_data.get('distance', '') if form_data else '' }}" placeholder="도착 후 기입"
-                    oninput="calcDistances()">
+                    value="{{ form_data.get('distance', '') if form_data else '' }}" placeholder="예: 200 (실제 운행 km)"
+                    oninput="calcFromDistance()">
             </div>
 
             <div class="form-group">
-                <label class="form-label">⑦ 주행 후 (km)</label>
-                <input type="text" id="inp_end_dist" class="form-control" placeholder="자동계산" readonly
-                    style="background: #f1f5f9 !important; color: #0284c7 !important; font-weight:700;">
+                <label class="form-label">⑦ 주행 후 계기판 거리 (km)</label>
+                <input type="number" step="0.1" name="end_distance" id="inp_end_dist" class="form-control"
+                    value="{{ form_data.get('end_distance', '') if form_data else '' }}" placeholder="예: 700 (사진 계기판 숫자)"
+                    oninput="calcFromEndDist()" style="font-weight:700; color: #0284c7;">
             </div>
             {% else %}
             <!-- 일반 뷰어 권한자의 신규 등록 시 주행 거리 필드 제외 (기본값 자동 할당, 추후 수정 시 입력) -->
@@ -572,25 +573,18 @@
                     -[이전 운행 마감 대기]-</td>
                 {% endif %}
                 {% if log.distance and log.distance > 0 %}
-                <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance)
-                    }}</td>
-                <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{
-                    "{:,.0f}".format(log.end_distance) }}</td>
+                <td style="font-family: monospace; color: #4ade80; font-weight: 700;">{{ "{:,.0f}".format(log.distance) }}</td>
+                <td style="font-family: monospace; color: #38bdf8; font-weight: 700;">{{ "{:,.0f}".format(log.end_distance) }}</td>
                 {% else %}
+                {% if log.start_time and now_str < log.start_time %}
+                <td style="color: #60a5fa; font-size: 11px; font-weight: 600; background: rgba(96, 165, 250, 0.1); border-radius: 4px;">-[사용 전]-</td>
+                {% elif log.end_time and now_str > log.end_time %}
+                <td style="color: #f87171; font-size: 11px; font-weight: 600; background: rgba(248, 113, 113, 0.1); border-radius: 4px;">-[거리 미입력]-</td>
+                {% else %}
+                <td style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">-[운행 중]-</td>
+                {% endif %}
                 <td style="color: #64748b; font-size: 11px;">-</td>
-                {% if log.start_time and now_str < log.start_time %} <td
-                    style="color: #60a5fa; font-size: 11px; font-weight: 600; background: rgba(96, 165, 250, 0.1); border-radius: 4px;">
-                    -[사용 전]-</td>
-                    {% elif log.end_time and now_str > log.end_time %}
-                    <td
-                        style="color: #f87171; font-size: 11px; font-weight: 600; background: rgba(248, 113, 113, 0.1); border-radius: 4px;">
-                        -[거리 미입력]-</td>
-                    {% else %}
-                    <td
-                        style="color: #fbbf24; font-size: 11px; font-weight: 600; background: rgba(245, 158, 11, 0.1); border-radius: 4px;">
-                        -[운행 중]-</td>
-                    {% endif %}
-                    {% endif %}
+                {% endif %}
                     <td style="text-align: left; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{
                         log.purpose or '-' }}</td>
                     <td>{{ log.notes or '-' }}</td>
@@ -599,7 +593,7 @@
                         current_user.id %}
                         <button type="button" class="btn btn-sm btn-secondary"
                             style="padding: 2px 8px; font-size:11px; margin-right:4px;"
-                            onclick="openLogItemEditModal({{ log.id }}, '{{ log.start_time or '' }}', '{{ log.end_time or '' }}', '{{ log.applicant or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}')">
+                            onclick="openLogItemEditModal({{ log.id }}, '{{ log.start_time or '' }}', '{{ log.end_time or '' }}', '{{ log.applicant or '' }}', '{{ log.driver or '' }}', '{{ log.distance or 0 }}', '{{ log.purpose or '' }}', '{{ log.notes or '' }}', '{{ log.start_distance or 0 }}', '{{ log.end_distance or 0 }}')">
                             수정
                         </button>
                         <form method="POST" action="{{ url_for('vehicle.delete_log', log_id=log.id) }}"
@@ -676,10 +670,18 @@
                 <label class="form-label">④ 운전자 성명</label>
                 <input type="text" name="driver" id="edit_driver" class="form-control" placeholder="운전자 성명">
             </div>
+            <input type="hidden" id="edit_start_dist_hidden" value="0">
             <div class="form-group">
-                <label class="form-label">⑥ 주행거리 (km)</label>
+                <label class="form-label">⑥ 주행 후 계기판 거리 (km)</label>
+                <input type="number" step="0.1" name="end_distance" id="edit_end_distance" class="form-control"
+                    placeholder="도착 후 계기판 수치 (예: 700)" oninput="calcEditFromEndDist()"
+                    style="font-weight:700; color: #0284c7; background: #ffffff;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">⑦ 이동 주행거리 (km) <span style="font-size:11px; color:#94a3b8;">(자동 계산)</span></label>
                 <input type="number" step="0.1" name="distance" id="edit_distance" class="form-control"
-                    placeholder="도착 후 주행거리 (km)">
+                    placeholder="자동 계산" oninput="calcEditFromDistance()"
+                    style="background: #f1f5f9 !important; color: #0284c7 !important; font-weight:700;">
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label class="form-label">⑧ 용도 / 구체적 사유</label>
@@ -707,20 +709,47 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>
 
 <script>
-    // 주행후 거리 자동 계산: 주행후 = 주행전 + 주행거리 (주행거리 입력 시에만 세팅)
-    function calcDistances() {
-        const startDist = parseFloat(document.getElementById('inp_start_dist').value) || 0;
-        const distVal = document.getElementById('inp_distance').value;
-        const dist = parseFloat(distVal);
+    // 1. 신규 등록 폼 양방향 실시간 거리 계산
+    function calcFromDistance() {
+        const startDist = parseFloat(document.getElementById('inp_start_dist')?.value) || 0;
+        const distVal = parseFloat(document.getElementById('inp_distance')?.value);
         const endDistEl = document.getElementById('inp_end_dist');
 
-        if (endDistEl) {
-            if (!isNaN(dist) && dist > 0) {
-                endDistEl.value = (startDist + dist).toFixed(1) + " km";
-            } else {
-                endDistEl.value = "";
-                endDistEl.placeholder = "도착 후 주행거리 입력 시 자동계산";
-            }
+        if (endDistEl && !isNaN(distVal) && distVal >= 0) {
+            endDistEl.value = (startDist + distVal).toFixed(1);
+        }
+    }
+
+    function calcFromEndDist() {
+        const startDist = parseFloat(document.getElementById('inp_start_dist')?.value) || 0;
+        const endDistVal = parseFloat(document.getElementById('inp_end_dist')?.value);
+        const distEl = document.getElementById('inp_distance');
+
+        if (distEl && !isNaN(endDistVal)) {
+            const calculatedDist = Math.max(endDistVal - startDist, 0);
+            distEl.value = calculatedDist.toFixed(1);
+        }
+    }
+
+    // 2. 수정 모달 폼 양방향 실시간 거리 계산
+    function calcEditFromDistance() {
+        const startDist = parseFloat(document.getElementById('edit_start_dist_hidden')?.value) || 0;
+        const distVal = parseFloat(document.getElementById('edit_distance')?.value);
+        const endDistEl = document.getElementById('edit_end_distance');
+
+        if (endDistEl && !isNaN(distVal) && distVal >= 0) {
+            endDistEl.value = (startDist + distVal).toFixed(1);
+        }
+    }
+
+    function calcEditFromEndDist() {
+        const startDist = parseFloat(document.getElementById('edit_start_dist_hidden')?.value) || 0;
+        const endDistVal = parseFloat(document.getElementById('edit_end_distance')?.value);
+        const distEl = document.getElementById('edit_distance');
+
+        if (distEl && !isNaN(endDistVal)) {
+            const calculatedDist = Math.max(endDistVal - startDist, 0);
+            distEl.value = calculatedDist.toFixed(1);
         }
     }
 
@@ -757,7 +786,7 @@
     }
 
     // 리스트 항목 수정 모달 열기
-    function openLogItemEditModal(id, startTime, endTime, applicant, driver, distance, purpose, notes) {
+    function openLogItemEditModal(id, startTime, endTime, applicant, driver, distance, purpose, notes, startDistance, endDistance) {
         const panel = document.getElementById('log-item-edit-panel');
         const form = document.getElementById('log-edit-form');
 
@@ -784,6 +813,8 @@
             document.getElementById('edit_applicant').value = applicant || '';
             document.getElementById('edit_driver').value = driver || '';
             document.getElementById('edit_distance').value = (distance && distance !== '0') ? distance : '';
+            document.getElementById('edit_end_distance').value = (endDistance && endDistance !== '0') ? endDistance : '';
+            document.getElementById('edit_start_dist_hidden').value = startDistance || 0;
             document.getElementById('edit_purpose').value = purpose || '';
             document.getElementById('edit_notes').value = notes || '';
 
