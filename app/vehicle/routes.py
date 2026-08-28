@@ -768,11 +768,20 @@ def export_excel(vehicle_id=None):
                 min_w = 32 if col_idx == 9 else 25
                 ws.column_dimensions[col_letter].width = max(max_len + 4, min_w)
             elif col_idx in (6, 7, 8):
-                ws.column_dimensions[col_letter].width = 16
+                # ⑥ 주행 전 거리(km), ⑦ 주행거리(km), ⑧ 주행 후 거리(km)
+                # '-[이전 운행 마감 대기]-' 등 긴 문구가 잘리지 않도록 넉넉하게 확장
+                if col_idx == 6:
+                    ws.column_dimensions[col_letter].width = 23.5  # 주행 전 거리 (마감대기 문구 넉넉하게)
+                else:
+                    ws.column_dimensions[col_letter].width = 18.5  # 주행거리, 주행 후 거리
             elif col_idx in (3, 4, 5):
-                ws.column_dimensions[col_letter].width = 13
+                # ③ 부서, ④ 신청자, ⑤ 운전자
+                if col_idx == 5:
+                    ws.column_dimensions[col_letter].width = 15.5  # 운전자 성명
+                else:
+                    ws.column_dimensions[col_letter].width = 14.5  # 부서, 신청자
             else:
-                ws.column_dimensions[col_letter].width = 15
+                ws.column_dimensions[col_letter].width = 16
 
     # 기본 생성된 빈 시트 제거
     if default_sheet in wb.worksheets and len(wb.worksheets) > 1:
