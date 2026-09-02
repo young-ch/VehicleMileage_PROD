@@ -1,0 +1,4 @@
+#!/bin/bash
+
+docker compose down && docker compose up -d --build
+echo "✅ 웹사이트(8885포트)와 DB(3306포트)가 모두 실행되었습니다!"
