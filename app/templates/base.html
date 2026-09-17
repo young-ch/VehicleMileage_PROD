@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     {% if current_user.is_authenticated %}
     <!-- App Layout with Sidebar -->
@@ -19,7 +21,8 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-brand">
-                <div class="brand-icon">📋</div>
+                <div class="brand-icon"><img src="{{ url_for('static', filename='img/saemaul.png') }}" alt="로고"
+                        style="width: 36px; height: 36px; object-fit: contain;"></div>
                 <div>
                     <h1>SMU</h1>
                     <span>Management System</span>
@@ -30,8 +33,8 @@
                 {% if not current_user.is_viewer %}
                 <div class="nav-section">
                     <div class="nav-section-title">메인</div>
-                    <a href="{{ url_for('main.dashboard') }}" 
-                       class="nav-item {{ 'active' if request.endpoint == 'main.dashboard' }}">
+                    <a href="{{ url_for('main.dashboard') }}"
+                        class="nav-item {{ 'active' if request.endpoint == 'main.dashboard' }}">
                         <span class="nav-icon">🏠</span> 대시보드
                     </a>
                 </div>
@@ -40,19 +43,19 @@
                 <div class="nav-section">
                     <div class="nav-section-title">관리</div>
                     {% if current_user.is_manager %}
-                    <a href="{{ url_for('personnel.list_personnel') }}" 
-                       class="nav-item {{ 'active' if request.blueprint == 'personnel' }}">
+                    <a href="{{ url_for('personnel.list_personnel') }}"
+                        class="nav-item {{ 'active' if request.blueprint == 'personnel' }}">
                         <span class="nav-icon">👥</span> 인원 관리
                     </a>
                     {% endif %}
                     {% if not current_user.is_viewer %}
-                    <a href="{{ url_for('jira.kanban_board') }}" 
-                       class="nav-item {{ 'active' if request.blueprint == 'jira' }}">
+                    <a href="{{ url_for('jira.kanban_board') }}"
+                        class="nav-item {{ 'active' if request.blueprint == 'jira' }}">
                         <span class="nav-icon">🎫</span> JIRA 이슈
                     </a>
                     {% endif %}
-                    <a href="{{ url_for('vehicle.index') }}" 
-                       class="nav-item {{ 'active' if request.blueprint == 'vehicle' }}">
+                    <a href="{{ url_for('vehicle.index') }}"
+                        class="nav-item {{ 'active' if request.blueprint == 'vehicle' }}">
                         <span class="nav-icon">🚗</span> 법인차량 운행일지
                     </a>
                 </div>
@@ -60,24 +63,25 @@
                 {% if not current_user.is_viewer and current_user.has_permission('stats_view') %}
                 <div class="nav-section">
                     <div class="nav-section-title">분석</div>
-                    <a href="{{ url_for('stats.dashboard') }}" 
-                       class="nav-item {{ 'active' if request.blueprint == 'stats' }}">
+                    <a href="{{ url_for('stats.dashboard') }}"
+                        class="nav-item {{ 'active' if request.blueprint == 'stats' }}">
                         <span class="nav-icon">📊</span> 통계
                     </a>
                 </div>
                 {% endif %}
 
-                {% if current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
+                {% if current_user.is_admin or current_user.is_vehicle_manager or
+                current_user.has_permission('vehicle_manage') %}
                 <div class="nav-section">
                     <div class="nav-section-title">시스템</div>
                     {% if current_user.is_admin %}
-                    <a href="{{ url_for('admin.users') }}" 
-                       class="nav-item {{ 'active' if request.endpoint == 'admin.users' }}">
+                    <a href="{{ url_for('admin.users') }}"
+                        class="nav-item {{ 'active' if request.endpoint == 'admin.users' }}">
                         <span class="nav-icon">⚙️</span> 사용자 관리
                     </a>
                     {% endif %}
-                    <a href="{{ url_for('admin.audit_logs') }}" 
-                       class="nav-item {{ 'active' if request.endpoint == 'admin.audit_logs' }}">
+                    <a href="{{ url_for('admin.audit_logs') }}"
+                        class="nav-item {{ 'active' if request.endpoint == 'admin.audit_logs' }}">
                         <span class="nav-icon">📜</span> 감사 로그
                     </a>
                 </div>
@@ -92,7 +96,8 @@
                         <div class="user-role">{{ current_user.role.name if current_user.role }}</div>
                     </div>
                 </div>
-                <a href="{{ url_for('auth.change_password') }}" class="nav-item" style="color: var(--text-secondary); margin-top: 8px;">
+                <a href="{{ url_for('auth.change_password') }}" class="nav-item"
+                    style="color: var(--text-secondary); margin-top: 8px;">
                     <span class="nav-icon">🔑</span> 비번 변경
                 </a>
                 <a href="{{ url_for('auth.logout') }}" class="nav-item mt-1" style="color: var(--danger);">
@@ -125,7 +130,8 @@
     <!-- Auth Pages (no sidebar) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999; width: 90%; max-width: 440px;">
+    <div
+        style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999; width: 90%; max-width: 440px;">
         {% for category, message in messages %}
         <div class="alert alert-{{ category }}">
             {{ message }}
@@ -140,4 +146,5 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

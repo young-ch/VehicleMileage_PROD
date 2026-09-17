@@ -5,7 +5,8 @@
 <div class="auth-container">
     <div class="auth-card">
         <div class="brand">
-            <div class="brand-icon">📋</div>
+            <div class="brand-icon"> <img src="{{ url_for('static', filename='img/saemaul.png') }}" alt="로고"
+                    style="width: 36px; height: 36px; object-fit: contain;"></div>
             <h2>SMU JIRA</h2>
             <p>관리 시스템에 로그인하세요</p>
         </div>
@@ -15,7 +16,8 @@
 
             <div class="form-group">
                 <label class="form-label" for="username">사용자명</label>
-                {{ form.username(class="form-control", id="username", placeholder="사용자명을 입력하세요", autocomplete="username") }}
+                {{ form.username(class="form-control", id="username", placeholder="사용자명을 입력하세요",
+                autocomplete="username") }}
                 {% for error in form.username.errors %}
                 <div class="form-error">{{ error }}</div>
                 {% endfor %}
@@ -23,7 +25,8 @@
 
             <div class="form-group">
                 <label class="form-label" for="password">비밀번호</label>
-                {{ form.password(class="form-control", id="password", placeholder="비밀번호를 입력하세요", autocomplete="current-password") }}
+                {{ form.password(class="form-control", id="password", placeholder="비밀번호를 입력하세요",
+                autocomplete="current-password") }}
                 {% for error in form.password.errors %}
                 <div class="form-error">{{ error }}</div>
                 {% endfor %}
@@ -31,7 +34,8 @@
 
             <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
                 {{ form.remember_me(id="remember_me") }}
-                <label for="remember_me" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">로그인 상태 유지</label>
+                <label for="remember_me" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">로그인 상태
+                    유지</label>
             </div>
 
             <button type="submit" class="btn btn-primary">로그인</button>
