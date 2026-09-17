@@ -1,5 +1,5 @@
 """메인 라우트 - 대시보드"""
-from flask import render_template, redirect, url_for
+from flask import render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from ..models.personnel import Personnel
 from ..models.jira import JiraIssue
@@ -11,6 +11,8 @@ from . import main_bp
 def index():
     """루트 → 대시보드 또는 로그인으로 리다이렉트"""
     if current_user.is_authenticated:
+        if current_user.is_viewer:
+            return redirect(url_for('vehicle.index'))
         return redirect(url_for('main.dashboard'))
     return redirect(url_for('auth.login'))
 
@@ -19,6 +21,9 @@ def index():
 @login_required
 def dashboard():
     """메인 대시보드 (일반 사용자는 본인 관련 활동 및 이슈만 노출, 관리자는 전체 노출)"""
+    if current_user.is_viewer:
+        flash('대시보드 접근 권한이 없습니다.', 'warning')
+        return redirect(url_for('vehicle.index'))
     from ..extensions import db
     
     # 일반 사용자용 JIRA 이슈 쿼리 필터링 정의

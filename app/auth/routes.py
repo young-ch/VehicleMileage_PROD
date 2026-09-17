@@ -13,6 +13,8 @@ from .forms import LoginForm, RegisterForm, ChangePasswordForm
 def login():
     """로그인"""
     if current_user.is_authenticated:
+        if current_user.is_viewer:
+            return redirect(url_for('vehicle.index'))
         return redirect(url_for('main.dashboard'))
     
     form = LoginForm()
@@ -32,7 +34,8 @@ def login():
             
             # 이전 페이지로 리다이렉트
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('main.dashboard'))
+            default_url = url_for('vehicle.index') if user.is_viewer else url_for('main.dashboard')
+            return redirect(next_page or default_url)
         else:
             flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'danger')
     

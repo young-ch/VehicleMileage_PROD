@@ -95,10 +95,10 @@ def _seed_initial_data():
             'stats_view': True,
         },
         'viewer': {
-            'jira_create': True,
-            'jira_edit': True,
-            'jira_delete': True,
-            'stats_view': True,
+            'jira_create': False,
+            'jira_edit': False,
+            'jira_delete': False,
+            'stats_view': False,
         }
     }
     

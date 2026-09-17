@@ -1,6 +1,6 @@
 """통계 라우트"""
-from flask import render_template, jsonify
-from flask_login import login_required
+from flask import render_template, jsonify, redirect, url_for, flash
+from flask_login import login_required, current_user
 from sqlalchemy import func
 from ..extensions import db
 from ..models.personnel import Personnel, Department
@@ -8,6 +8,14 @@ from ..models.jira import JiraIssue
 from ..models.user import User
 from ..utils.decorators import permission_required
 from . import stats_bp
+
+
+@stats_bp.before_request
+def restrict_stats_access():
+    """viewer 역할 또는 stats_view 권한 없는 사용자는 통계 접근 불가"""
+    if current_user.is_authenticated and (current_user.is_viewer or not current_user.has_permission('stats_view')):
+        flash('통계 접근 권한이 없습니다.', 'warning')
+        return redirect(url_for('vehicle.index'))
 
 
 @stats_bp.route('/')

@@ -27,6 +27,7 @@
             </div>
 
             <nav class="sidebar-nav">
+                {% if not current_user.is_viewer %}
                 <div class="nav-section">
                     <div class="nav-section-title">메인</div>
                     <a href="{{ url_for('main.dashboard') }}" 
@@ -34,6 +35,7 @@
                         <span class="nav-icon">🏠</span> 대시보드
                     </a>
                 </div>
+                {% endif %}
 
                 <div class="nav-section">
                     <div class="nav-section-title">관리</div>
@@ -43,16 +45,19 @@
                         <span class="nav-icon">👥</span> 인원 관리
                     </a>
                     {% endif %}
+                    {% if not current_user.is_viewer %}
                     <a href="{{ url_for('jira.kanban_board') }}" 
                        class="nav-item {{ 'active' if request.blueprint == 'jira' }}">
                         <span class="nav-icon">🎫</span> JIRA 이슈
                     </a>
+                    {% endif %}
                     <a href="{{ url_for('vehicle.index') }}" 
                        class="nav-item {{ 'active' if request.blueprint == 'vehicle' }}">
                         <span class="nav-icon">🚗</span> 법인차량 운행일지
                     </a>
                 </div>
 
+                {% if not current_user.is_viewer and current_user.has_permission('stats_view') %}
                 <div class="nav-section">
                     <div class="nav-section-title">분석</div>
                     <a href="{{ url_for('stats.dashboard') }}" 
@@ -60,6 +65,7 @@
                         <span class="nav-icon">📊</span> 통계
                     </a>
                 </div>
+                {% endif %}
 
                 {% if current_user.is_admin or current_user.is_vehicle_manager or current_user.has_permission('vehicle_manage') %}
                 <div class="nav-section">

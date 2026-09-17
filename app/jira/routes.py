@@ -28,6 +28,14 @@ def generate_jira_key():
     return new_key
 
 
+@jira_bp.before_request
+def restrict_jira_access():
+    """viewer 역할은 JIRA 이슈 접근 불가"""
+    if current_user.is_authenticated and current_user.is_viewer:
+        flash('JIRA 이슈 접근 권한이 없습니다.', 'warning')
+        return redirect(url_for('vehicle.index'))
+
+
 @jira_bp.route('/')
 @login_required
 def kanban_board():
