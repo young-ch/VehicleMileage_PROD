@@ -86,14 +86,18 @@ def sync_vehicle_log_distances(vehicle_id):
         if is_future:
             log.distance = 0.0
             log.end_distance = log.start_distance
-        # 실제 운행이 완료되었고 주행 후 계기판 거리가 주행 전 거리보다 큰 경우:
-        elif log.end_distance and log.end_distance > log.start_distance:
-            log.distance = max(log.end_distance - log.start_distance, 0.0)
-            current_odometer = log.end_distance
+        # 실제 운행 마감이 완료된 건 (주행거리 distance > 0):
+        # => 주행 후 계기판 거리를 보존하고, 주행거리(distance)를 (주행후 - 주행전)으로 자동 역산 보정!
         elif log.distance and log.distance > 0:
-            log.end_distance = log.start_distance + log.distance
-            current_odometer = log.end_distance
+            if log.end_distance and log.end_distance >= log.start_distance:
+                log.distance = max(log.end_distance - log.start_distance, 0.0)
+                current_odometer = log.end_distance
+            else:
+                log.end_distance = log.start_distance + log.distance
+                current_odometer = log.end_distance
         else:
+            # 아직 운행 중이거나 주행거리를 입력하지 않은 미완료 건:
+            # 주행거리는 0.0으로 유지하고, 주행 후 거리는 시작 거리와 일치시켜 대기 (임의 거리 발생 방지)
             log.end_distance = log.start_distance
             log.distance = 0.0
     db.session.commit()
@@ -267,6 +271,25 @@ def add_log(vehicle_id):
                 session['add_log_form_data'] = request.form.to_dict()
                 flash(f'⚠️ 등록 차단: 입력하신 주행 후 계기판 거리({end_distance:,.1f} km)는 주행 전 거리({start_distance:,.1f} km)보다 작을 수 없습니다.', 'danger')
                 return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+            # 과거 데이터 신규 등록 시: 이후 운행 건의 계기판 거리보다 클 수 없음 (상한선 차단)
+            subsequent_logs = VehicleLog.query.filter(
+                VehicleLog.vehicle_id == vehicle_id,
+                VehicleLog.start_time > start_time
+            ).order_by(VehicleLog.start_time.asc()).all()
+
+            max_allowed_km = None
+            for sub in subsequent_logs:
+                sub_reading = sub.end_distance if (sub.end_distance and sub.end_distance > 0) else sub.start_distance
+                if sub_reading and sub_reading > start_distance:
+                    if max_allowed_km is None or sub_reading > max_allowed_km:
+                        max_allowed_km = sub_reading
+
+            if max_allowed_km is not None and end_distance > max_allowed_km:
+                session['add_log_form_data'] = request.form.to_dict()
+                flash(f'⚠️ 등록 차단: 입력하신 주행 후 계기판 거리({end_distance:,.0f} km)는 이후 운행 건의 계기판 거리({max_allowed_km:,.0f} km)보다 높을 수 없습니다.', 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
             distance = end_distance - start_distance
         elif dist_input != '':
             distance = float(dist_input)
@@ -274,7 +297,26 @@ def add_log(vehicle_id):
                 session['add_log_form_data'] = request.form.to_dict()
                 flash('⚠️ 등록 차단: 주행거리는 0km 이상이어야 합니다.', 'danger')
                 return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
-            end_distance = start_distance + distance
+
+            new_calc_end = start_distance + distance
+            subsequent_logs = VehicleLog.query.filter(
+                VehicleLog.vehicle_id == vehicle_id,
+                VehicleLog.start_time > start_time
+            ).order_by(VehicleLog.start_time.asc()).all()
+
+            max_allowed_km = None
+            for sub in subsequent_logs:
+                sub_reading = sub.end_distance if (sub.end_distance and sub.end_distance > 0) else sub.start_distance
+                if sub_reading and sub_reading > start_distance:
+                    if max_allowed_km is None or sub_reading > max_allowed_km:
+                        max_allowed_km = sub_reading
+
+            if max_allowed_km is not None and new_calc_end > max_allowed_km:
+                session['add_log_form_data'] = request.form.to_dict()
+                flash(f'⚠️ 등록 차단: 계산된 주행 후 계기판 거리({new_calc_end:,.0f} km)는 이후 운행 건의 계기판 거리({max_allowed_km:,.0f} km)보다 높을 수 없습니다.', 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+            end_distance = new_calc_end
         else:
             distance = 0.0
             end_distance = start_distance
@@ -404,6 +446,27 @@ def edit_log(log_id):
                 session['edit_log_id'] = log_id
                 flash(f"⚠️ 수정 차단: 입력하신 주행 후 계기판 거리({new_end_dist:,.1f} km)는 주행 전 거리({log_item.start_distance:,.1f} km)보다 작을 수 없습니다.", 'danger')
                 return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+            # 요청사항: 과거 데이터 수정 시 이후 운행 건의 계기판 거리보다 클 수 없음 (상한선 차단)
+            subsequent_logs = VehicleLog.query.filter(
+                VehicleLog.vehicle_id == vehicle_id,
+                VehicleLog.id != log_item.id,
+                VehicleLog.start_time > new_start_time
+            ).order_by(VehicleLog.start_time.asc()).all()
+
+            max_allowed_km = None
+            for sub in subsequent_logs:
+                sub_reading = sub.end_distance if (sub.end_distance and sub.end_distance > 0) else sub.start_distance
+                if sub_reading and sub_reading > log_item.start_distance:
+                    if max_allowed_km is None or sub_reading > max_allowed_km:
+                        max_allowed_km = sub_reading
+
+            if max_allowed_km is not None and new_end_dist > max_allowed_km:
+                session['edit_log_form_data'] = request.form.to_dict()
+                session['edit_log_id'] = log_id
+                flash(f"⚠️ 수정 차단: 입력하신 최종 계기판 거리({new_end_dist:,.0f} km)는 현재/이후 운행 건의 계기판 거리({max_allowed_km:,.0f} km)보다 높을 수 없습니다.", 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
             log_item.end_distance = new_end_dist
             log_item.distance = new_end_dist - log_item.start_distance
         except ValueError:
@@ -416,8 +479,29 @@ def edit_log(log_id):
                 session['edit_log_id'] = log_id
                 flash('⚠️ 수정 차단: 주행거리는 0km 이상이어야 합니다.', 'danger')
                 return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
+            new_calc_end = log_item.start_distance + new_distance
+            subsequent_logs = VehicleLog.query.filter(
+                VehicleLog.vehicle_id == vehicle_id,
+                VehicleLog.id != log_item.id,
+                VehicleLog.start_time > new_start_time
+            ).order_by(VehicleLog.start_time.asc()).all()
+
+            max_allowed_km = None
+            for sub in subsequent_logs:
+                sub_reading = sub.end_distance if (sub.end_distance and sub.end_distance > 0) else sub.start_distance
+                if sub_reading and sub_reading > log_item.start_distance:
+                    if max_allowed_km is None or sub_reading > max_allowed_km:
+                        max_allowed_km = sub_reading
+
+            if max_allowed_km is not None and new_calc_end > max_allowed_km:
+                session['edit_log_form_data'] = request.form.to_dict()
+                session['edit_log_id'] = log_id
+                flash(f"⚠️ 수정 차단: 계산된 최종 계기판 거리({new_calc_end:,.0f} km)는 현재/이후 운행 건의 계기판 거리({max_allowed_km:,.0f} km)보다 높을 수 없습니다.", 'danger')
+                return redirect(url_for('vehicle.view_log', vehicle_id=vehicle_id))
+
             log_item.distance = new_distance
-            log_item.end_distance = log_item.start_distance + new_distance
+            log_item.end_distance = new_calc_end
         except ValueError:
             pass
 
